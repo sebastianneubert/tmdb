@@ -1,7 +1,14 @@
-# tmdb - the movie db CLI tool
+# tmdb - The movie db CLI tool
 
 CLI tool to discover hidden gems in your streaming libraries. Fetches data from TMDB and your streaming services to 
 help you find movies and shows you might have missed. 
+
+## Example
+
+```bash
+tmdb actor "Leonardo DiCaprio"
+```
+![tmdb-actor-example](docs/example.png)
 
 ## Build and Install
 
@@ -13,8 +20,9 @@ go build -o tmdb cmd/main.go # or make build
 
 ## Setup
 
-1. Copy `.env.example` to `.env`
-2. Add your TMDB API key and adjust your preferences:
+1. Get an API key from TMDB: https://www.themoviedb.org/settings/api
+2. Copy `.env.example` to `.env`
+3. Add your TMDB API key and adjust your preferences:
 
     ```
     # .env file
@@ -46,3 +54,7 @@ go build -o tmdb cmd/main.go # or make build
 - [ ] add more filters like genre, release year, etc.
 - [ ] caching of API responses to reduce load times and API calls
 - [ ] add tests
+- [ ] generate .env file with setup command (interactive shell)
+- [ ] command with some recommendations of actors
+- [ ] search actors and list possible matches for misspellings or non-exact names
+
