@@ -25,6 +25,7 @@ func init() {
 	rootCmd.AddCommand(topCmd)
 	rootCmd.AddCommand(actorCmd)
 	rootCmd.AddCommand(showsCmd)
+	rootCmd.AddCommand(searchCmd)
 }
 
 func Execute() {

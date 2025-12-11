@@ -43,16 +43,19 @@ go build -o tmdb cmd/main.go # or make build
 # Show filmographies of a specific actor
 ./tmdb actor "Nicolas Cage"
 
+# search for movies with "star" in the title like Star Wars, Star Trek, etc.
+./tmdb search star
+
 # Show top rated shows
 ./tmdb shows --min-rating 8.0
 ```
 
 ## Missing Features
 
-- [ ] fomo command. List movies leaving streaming services soon.
-- [ ] add movie search by title
+- [x] add movie search by title
 - [ ] add more filters like genre, release year, etc.
 - [ ] caching of API responses to reduce load times and API calls
+- [ ] fomo command. List movies leaving streaming services soon.
 - [ ] add tests
 - [ ] generate .env file with setup command (interactive shell)
 - [ ] command with some recommendations of actors
