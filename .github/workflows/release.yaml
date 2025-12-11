@@ -52,6 +52,30 @@ jobs:
           sha256sum * > checksums.txt
           cat checksums.txt
 
+      - name: Get Existing Release Body (if any)
+        id: get_body
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const tag = process.env.GITHUB_REF.replace('refs/tags/', '');
+
+            try {
+              const release = await github.rest.repos.getReleaseByTag({
+                owner,
+                repo,
+                tag,
+              });
+
+              // Output the existing body to be used in the next step
+              core.setOutput('existing_body', release.data.body);
+
+            } catch (error) {
+              // If the release doesn't exist yet, this will fail.
+              // We can safely ignore the error and set an empty body.
+              core.setOutput('existing_body', '');
+            }
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -63,9 +87,11 @@ jobs:
             dist/tmdb-linux-arm64
             dist/checksums.txt
           body: |
-            ## TMDb Finder ${{ steps.get_version.outputs.VERSION }}
-            
-            ### Installation
+            ${{ steps.get_body.outputs.existing_body }}
+
+            ---
+
+            ### Installation of tmdb ${{ steps.get_version.outputs.VERSION }}
             
             Download the appropriate binary for your system:
             
