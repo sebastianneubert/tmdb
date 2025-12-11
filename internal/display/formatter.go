@@ -17,6 +17,7 @@ type MovieDisplay struct {
 	ImdbID          string
 	Overview        string
 	Character       string
+	Genres          []string
 }
 
 func DisplayMovie(m MovieDisplay) {
@@ -29,6 +30,11 @@ func DisplayMovie(m MovieDisplay) {
 
 	fmt.Printf("%d. %s%s %s\n", m.Number, TitleStyle.Render(m.Title), englishTitleDisplay, m.Year)
 	fmt.Printf("   Rating: %s/10 (Votes: %d)\n", RatingStyle.Render(fmt.Sprintf("%.1f", m.Rating)), m.Votes)
+
+	if len(m.Genres) > 0 {
+		genreStr := strings.Join(m.Genres, ", ")
+		fmt.Printf("   Genres: %s\n", OriginalTitleStyle.Render(genreStr))
+	}
 
 	if m.Character != "" {
 		fmt.Printf("   Character: %s\n", m.Character)

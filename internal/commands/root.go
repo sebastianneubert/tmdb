@@ -26,6 +26,7 @@ func init() {
 	rootCmd.AddCommand(actorCmd)
 	rootCmd.AddCommand(showsCmd)
 	rootCmd.AddCommand(searchCmd)
+	rootCmd.AddCommand(genresCmd)
 }
 
 func Execute() {

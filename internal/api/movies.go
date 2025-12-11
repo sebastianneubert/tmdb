@@ -129,3 +129,38 @@ func (c *Client) SearchMovie(query string, language string, region string) (*mod
 
   return finalResponse, nil
 }
+
+func (c *Client) GetGenres(language string) (*models.GenreListResponse, error) {
+	params := url.Values{}
+	params.Set("language", language)
+
+	req, err := c.createRequest("/genre/movie/list", params)
+	if err != nil {
+		return nil, err
+	}
+
+	var response models.GenreListResponse
+	if err := c.doRequest(req, &response); err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}
+
+func (c *Client) GetMovieDetails(movieID int, language string) (*models.Movie, error) {
+	apiPath := fmt.Sprintf("/movie/%d", movieID)
+	params := url.Values{}
+	params.Set("language", language)
+
+	req, err := c.createRequest(apiPath, params)
+	if err != nil {
+		return nil, err
+	}
+
+	var movie models.Movie
+	if err := c.doRequest(req, &movie); err != nil {
+		return nil, err
+	}
+
+	return &movie, nil
+}

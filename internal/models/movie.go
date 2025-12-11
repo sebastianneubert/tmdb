@@ -10,6 +10,8 @@ type Movie struct {
 	FirstAirDate  string  `json:"first_air_date"`
 	VoteAverage   float64 `json:"vote_average"`
 	VoteCount     int     `json:"vote_count"`
+	GenreIDs      []int   `json:"genre_ids"`
+	Genres        []Genre `json:"genres"`
 }
 
 type DiscoverResponse struct {
@@ -44,4 +46,12 @@ func (m *Movie) GetTitle() string {
 		return m.Title
 	}
 	return m.Name
+}
+
+func (m *Movie) GetGenreNames() []string {
+	names := make([]string, len(m.Genres))
+	for i, genre := range m.Genres {
+		names[i] = genre.Name
+	}
+	return names
 }

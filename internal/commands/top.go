@@ -9,6 +9,7 @@ import (
 	"github.com/sebastianneubert/tmdb/internal/config"
 	"github.com/sebastianneubert/tmdb/internal/display"
 	"github.com/sebastianneubert/tmdb/internal/filters"
+	"github.com/sebastianneubert/tmdb/internal/models"
 )
 
 var (
@@ -17,6 +18,7 @@ var (
 	topMinRating float64
 	topMinVotes  int
 	topTimeout   int
+	topGenre     string
 )
 
 var topCmd = &cobra.Command{
@@ -32,6 +34,7 @@ func init() {
 	topCmd.Flags().Float64Var(&topMinRating, "min-rating", config.DefaultMinRating, "Minimum rating")
 	topCmd.Flags().IntVar(&topMinVotes, "min-votes", config.DefaultMinVotes, "Minimum votes")
 	topCmd.Flags().IntVarP(&topTimeout, "timeout", "T", config.DefaultTimeout, "Timeout in seconds")
+	topCmd.Flags().StringVar(&topGenre, "genre", "", "Filter by genre (name or ID)")
 }
 
 func runTop(cmd *cobra.Command, args []string) {
@@ -70,6 +73,16 @@ func runTop(cmd *cobra.Command, args []string) {
 
 	desiredProviders := filters.ParseProviders(finalProviders)
 
+  var genreList []models.Genre
+	var genreMap map[string]int
+	if topGenre != "" {
+		genreResp, err := client.GetGenres("de-DE")
+		if err == nil {
+			genreList = genreResp.Genres
+			genreMap = filters.BuildGenreMap(genreList)
+		}
+	}
+
 	fmt.Printf("Searching TMDb's Top Rated Movies...\n")
 	fmt.Printf("Criteria: Min Rating: %.1f | Min Votes: %d\n", finalMinRating, finalMinVotes)
 	fmt.Printf("Filtering for [%s] in region [%s]\n\n", finalProviders, strings.ToUpper(finalRegion))
@@ -93,6 +106,10 @@ func runTop(cmd *cobra.Command, args []string) {
 				continue
 			}
 
+			if topGenre != "" && !filters.FilterByGenre(&movie, topGenre, genreMap) {
+				continue
+			}
+
 			providerData, err := client.GetWatchProviders(movie.ID, finalRegion)
 			if err != nil {
 				continue
@@ -110,6 +127,8 @@ func runTop(cmd *cobra.Command, args []string) {
 				englishTitle = movie.OriginalTitle
 			}
 
+      genreNames := filters.GetGenreNames(movie.GenreIDs, genreList)
+
 			display.DisplayMovie(display.MovieDisplay{
 				Number: resultsFound,
 				Title: movie.GetTitle(),
@@ -121,6 +140,7 @@ func runTop(cmd *cobra.Command, args []string) {
 				TmdbID: movie.ID,
 				ImdbID: externalIDs.ImdbID,
 				Overview: movie.Overview,
+				Genres: genreNames,
 			})
 		}
 
