@@ -9,15 +9,17 @@ import (
 	"github.com/sebastianneubert/tmdb/internal/config"
 	"github.com/sebastianneubert/tmdb/internal/display"
 	"github.com/sebastianneubert/tmdb/internal/filters"
+	"github.com/sebastianneubert/tmdb/internal/models"
 )
 
 var (
-	searchProviders string
-	searchRegion    string
-	searchMinRating float64
-	searchMinVotes  int
-	searchTimeout   int
+	searchProviders  string
+	searchRegion     string
+	searchMinRating  float64
+	searchMinVotes   int
+	searchTimeout    int
 	searchMaxResults int
+	searchGenre      string
 )
 
 var searchCmd = &cobra.Command{
@@ -28,7 +30,7 @@ var searchCmd = &cobra.Command{
 Examples:
   tmdb search "star"
   tmdb search "star wars" --min-rating 7.0
-  tmdb search "matrix" --region US --providers Netflix,Amazon`,
+  tmdb search "matrix" --region US --providers Netflix,Amazon --genre Action`,
 	Args: cobra.MinimumNArgs(1),
 	Run:  runSearch,
 }
@@ -40,6 +42,7 @@ func init() {
 	searchCmd.Flags().IntVar(&searchMinVotes, "min-votes", config.DefaultMinVotes, "Minimum votes")
 	searchCmd.Flags().IntVarP(&searchTimeout, "timeout", "T", config.DefaultTimeout, "Timeout in seconds")
 	searchCmd.Flags().IntVar(&searchMaxResults, "max", 20, "Maximum results to display")
+	searchCmd.Flags().StringVar(&searchGenre, "genre", "", "Filter by genre (name or ID)")
 }
 
 func runSearch(cmd *cobra.Command, args []string) {
@@ -78,6 +81,16 @@ func runSearch(cmd *cobra.Command, args []string) {
 	}
 
 	desiredProviders := filters.ParseProviders(finalProviders)
+
+  var genreList []models.Genre
+	var genreMap map[string]int
+	if searchGenre != "" {
+		genreResp, err := client.GetGenres("de-DE")
+		if err == nil {
+			genreList = genreResp.Genres
+			genreMap = filters.BuildGenreMap(genreList)
+		}
+	}
 
 	fmt.Printf("🔍 Searching for: \"%s\"\n", query)
 	fmt.Printf("Criteria: Min Rating: %.1f | Min Votes: %d\n", finalMinRating, finalMinVotes)
@@ -123,6 +136,10 @@ func runSearch(cmd *cobra.Command, args []string) {
 			continue
 		}
 
+		if searchGenre != "" && !filters.FilterByGenre(&movie, searchGenre, genreMap) {
+			continue
+		}
+
 		// Movie matches all criteria
 		resultsFound++
 
@@ -132,6 +149,8 @@ func runSearch(cmd *cobra.Command, args []string) {
 		if englishTitle == "" {
 			englishTitle = movie.OriginalTitle
 		}
+
+    genreNames := filters.GetGenreNames(movie.GenreIDs, genreList)
 
 		display.DisplayMovie(display.MovieDisplay{
 			Number:       resultsFound,
@@ -144,6 +163,7 @@ func runSearch(cmd *cobra.Command, args []string) {
 			TmdbID:       movie.ID,
 			ImdbID:       externalIDs.ImdbID,
 			Overview:     movie.Overview,
+			Genres:       genreNames,
 		})
 	}
 

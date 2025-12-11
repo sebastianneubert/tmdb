@@ -64,7 +64,7 @@ func runActor(cmd *cobra.Command, args []string) {
 		finalTimeout = actorTimeout
 	}
 
-	client, err := api.NewClient(cfg.APIKey, finalTimeout) // finalTimeout verwenden
+	client, err := api.NewClient(cfg.APIKey, finalTimeout)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
