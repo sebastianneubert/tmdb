@@ -84,13 +84,12 @@ func runSearch(cmd *cobra.Command, args []string) {
 
   var genreList []models.Genre
 	var genreMap map[string]int
-	if searchGenre != "" {
-		genreResp, err := client.GetGenres("de-DE")
-		if err == nil {
-			genreList = genreResp.Genres
-			genreMap = filters.BuildGenreMap(genreList)
-		}
-	}
+
+  genreResp, err := client.GetGenres("de-DE")
+  if err == nil {
+    genreList = genreResp.Genres
+    genreMap = filters.BuildGenreMap(genreList)
+  }
 
 	fmt.Printf("🔍 Searching for: \"%s\"\n", query)
 	fmt.Printf("Criteria: Min Rating: %.1f | Min Votes: %d\n", finalMinRating, finalMinVotes)
