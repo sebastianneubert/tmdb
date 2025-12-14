@@ -13,6 +13,7 @@ const (
 	DefaultTimeout      = 20
 	DefaultMinRating    = 7.5
 	DefaultMinVotes     = 1000
+	DefaultDebug        = false
 	MaxPagesToSearch    = 5
 	MaxResultsToDisplay = 40
 )
@@ -24,6 +25,7 @@ type Config struct {
 	MinRating float64 `mapstructure:"MIN_RATING"`
 	MinVotes  int     `mapstructure:"MIN_VOTES"`
 	Timeout   int     `mapstructure:"API_TIMEOUT_SECONDS"`
+	DEBUG     bool    `mapstructure:"DEBUG"`
 }
 
 var AppConfig Config
@@ -39,6 +41,7 @@ func Init() {
 	viper.SetDefault("MIN_RATING", DefaultMinRating)
 	viper.SetDefault("MIN_VOTES", DefaultMinVotes)
 	viper.SetDefault("API_TIMEOUT_SECONDS", DefaultTimeout)
+	viper.SetDefault("DEBUG", DefaultDebug)
 	viper.SetDefault("TMDB_API_KEY", "")
 
 	if err := viper.ReadInConfig(); err != nil {

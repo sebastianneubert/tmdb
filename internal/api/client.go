@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"bytes"
+
+	"github.com/sebastianneubert/tmdb/internal/config"
 )
 
 const baseURL = "https://api.themoviedb.org/3"
@@ -43,20 +46,57 @@ func (c *Client) createRequest(apiPath string, params url.Values) (*http.Request
 }
 
 func (c *Client) doRequest(req *http.Request, target interface{}) error {
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
+    cfg := config.Get()
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
-	}
+    resp, err := c.httpClient.Do(req)
+    if err != nil {
+        return fmt.Errorf("request failed: %w", err)
+    }
+    defer resp.Body.Close()
 
-	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
-		return fmt.Errorf("failed to decode response: %w", err)
-	}
+    // --- DEBUGGING STEP START ---
 
-	return nil
+    // 1. Read the entire response body into a byte slice.
+    bodyBytes, readErr := io.ReadAll(resp.Body)
+    if readErr != nil {
+        return fmt.Errorf("failed to read response body: %w", readErr)
+    }
+
+    // 2. Print the raw JSON response for debugging.
+    // Use json.MarshalIndent for a pretty-printed output.
+    // NOTE: This uses the "encoding/json" package.
+
+    if cfg.DEBUG {
+      var raw map[string]interface{}
+      if err := json.Unmarshal(bodyBytes, &raw); err == nil {
+          // Pretty-print if it's valid JSON
+          prettyJSON, _ := json.MarshalIndent(raw, "", "  ")
+          fmt.Println("--- API Response Body (Pretty) ---")
+          fmt.Println(string(prettyJSON))
+          fmt.Println("----------------------------------")
+      } else {
+          // If it's not JSON (e.g., HTML error), print it as raw text
+          fmt.Println("--- API Response Body (Raw Text) ---")
+          fmt.Println(string(bodyBytes))
+          fmt.Println("------------------------------------")
+      }
+    }
+
+    // 3. Create a new io.Reader from the byte slice.
+    // This allows the JSON decoder to read the data.
+    newBodyReader := bytes.NewReader(bodyBytes)
+
+    // --- DEBUGGING STEP END ---
+
+    if resp.StatusCode != http.StatusOK {
+        // Use the read body for the error message
+        return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(bodyBytes))
+    }
+
+    // Use the new reader for decoding.
+    if err := json.NewDecoder(newBodyReader).Decode(target); err != nil {
+        return fmt.Errorf("failed to decode response: %w", err)
+    }
+
+    return nil
 }

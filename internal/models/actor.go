@@ -24,6 +24,7 @@ type MovieCredit struct {
 	VoteCount     int     `json:"vote_count"`
 	Character     string  `json:"character"`
 	Overview      string  `json:"overview"`
+	// GenreIds      []Genre `json:"genre_ids"`
 }
 
 type ActorCreditsResponse struct {

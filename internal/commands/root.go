@@ -32,6 +32,8 @@ func init() {
 func Execute() {
   bindCommandFlags(topCmd)
 	bindCommandFlags(actorCmd)
+	bindCommandFlags(searchCmd)
+	bindCommandFlags(showsCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
