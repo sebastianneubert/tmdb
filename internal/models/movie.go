@@ -12,6 +12,7 @@ type Movie struct {
 	VoteCount     int     `json:"vote_count"`
 	GenreIDs      []int   `json:"genre_ids"`
 	Genres        []Genre `json:"genres"`
+	Character     string  `json:"character"`
 }
 
 type DiscoverResponse struct {

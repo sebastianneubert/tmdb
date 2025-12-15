@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/sebastianneubert/tmdb/internal/api"
 	"github.com/sebastianneubert/tmdb/internal/config"
 	"github.com/sebastianneubert/tmdb/internal/display"
 	"github.com/sebastianneubert/tmdb/internal/filters"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -115,6 +115,9 @@ func runActor(cmd *cobra.Command, args []string) {
 
 		providerData, err := client.GetWatchProviders(movie.ID, actorRegion)
 		if err != nil {
+		  if cfg.DEBUG {
+		    fmt.Printf("Error fetching providers for %s: %v\n", movie.Title, err)
+		  }
 			continue
 		}
 
@@ -131,17 +134,17 @@ func runActor(cmd *cobra.Command, args []string) {
 		}
 
 		display.DisplayMovie(display.MovieDisplay{
-			Number: resultsFound,
-			Title: movie.Title,
+			Number:       resultsFound,
+			Title:        movie.Title,
 			EnglishTitle: englishTitle,
-			Year: movie.GetYear(),
-			Rating: movie.VoteAverage,
-			Votes: movie.VoteCount,
-			Providers: availableProviders,
-			TmdbID: movie.ID,
-			ImdbID: externalIDs.ImdbID,
-			Overview: movie.Overview,
-			Character: movie.Character,
+			Year:         movie.GetYear(),
+			Rating:       movie.VoteAverage,
+			Votes:        movie.VoteCount,
+			Providers:    availableProviders,
+			TmdbID:       movie.ID,
+			ImdbID:       externalIDs.ImdbID,
+			Overview:     movie.Overview,
+			Character:    movie.Character,
 		})
 
 		if resultsFound >= config.MaxResultsToDisplay {

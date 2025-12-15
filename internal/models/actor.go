@@ -15,26 +15,7 @@ type ActorSearchResponse struct {
 	TotalResults int     `json:"total_results"`
 }
 
-type MovieCredit struct {
-	ID            int     `json:"id"`
-	Title         string  `json:"title"`
-	OriginalTitle string  `json:"original_title"`
-	ReleaseDate   string  `json:"release_date"`
-	VoteAverage   float64 `json:"vote_average"`
-	VoteCount     int     `json:"vote_count"`
-	Character     string  `json:"character"`
-	Overview      string  `json:"overview"`
-	// GenreIds      []Genre `json:"genre_ids"`
-}
-
 type ActorCreditsResponse struct {
-	ID   int           `json:"id"`
-	Cast []MovieCredit `json:"cast"`
-}
-
-func (mc *MovieCredit) GetYear() string {
-	if len(mc.ReleaseDate) >= 4 {
-		return "(" + mc.ReleaseDate[:4] + ")"
-	}
-	return ""
+	ID   int     `json:"id"`
+	Cast []Movie `json:"cast"`
 }
