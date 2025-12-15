@@ -47,7 +47,10 @@ go build -o tmdb cmd/main.go # or make build
 ./tmdb actor --list
 
 # Search for actors with partial name match and show all options
-./tmdb actor "tom" --list
+./tmdb actor "tom"
+
+# Select specific actor from multiple results by index
+./tmdb actor "Megan Fox" 1
 
 # Search for movies with "star" in the title like Star Wars, Star Trek, etc.
 ./tmdb search star
@@ -56,32 +59,25 @@ go build -o tmdb cmd/main.go # or make build
 ./tmdb shows --min-rating 8.0
 ```
 
-## Actor Command Features
+## Actor Command - Multiple Results
 
-The actor command has several modes:
+When searching for an actor that returns multiple results (e.g., "Tom" returns multiple actors named Tom):
 
-1. **Filmography Search**: `tmdb actor "Actor Name"`
-   - Shows movies/shows for the specified actor
-   - Filters by rating, votes, and streaming availability
-   - Displays character names for each role
+1. **Without index**: Shows a list of matching actors
+   ```bash
+   tmdb actor "tom"
+   # Output shows: Tom Hanks, Tom Hardy, Tom Cruise, etc.
+   ```
 
-2. **List on Multiple Matches**: When searching for an actor with partial name
-   - If multiple actors match, shows a list by popularity
-   - Run with `--list` flag to always show the list
-   - Example: `tmdb actor "tom" --list`
+2. **With index**: Directly selects and fetches filmography for a specific actor
+   ```bash
+   tmdb actor "tom" 1        # Fetch Tom Hanks filmography
+   tmdb actor "tom" 2        # Fetch Tom Hardy filmography  
+   tmdb actor "Megan Fox" 1  # Fetch first Megan Fox
+   tmdb actor "Megan Fox" 2  # Fetch second Megan Fox
+   ```
 
-3. **Popular Actors**: `tmdb actor --list`
-   - Shows popular actors when no name is provided
-   - Sorted by popularity score
-
-4. **Available Flags**:
-   - `--list`: Show list of actors instead of filmography
-   - `--genre`: Filter by genre (name or ID)
-   - `--region`: Set the watch region (default from .env)
-   - `--providers`: Filter streaming providers
-   - `--min-rating`: Minimum rating threshold
-   - `--min-votes`: Minimum votes threshold
-   - `--timeout`: API timeout in seconds
+The index corresponds to the order shown in the search results (1-based indexing).
 
 ## Missing Features
 
@@ -93,4 +89,3 @@ The actor command has several modes:
 - [ ] generate .env file with setup command (interactive shell)
 - [ ] command with some recommendations of actors
 - [x] search actors and list possible matches for misspellings or non-exact names, list by popularity, if no name provided
-

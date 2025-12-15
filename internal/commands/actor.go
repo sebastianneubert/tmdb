@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/sebastianneubert/tmdb/internal/api"
@@ -24,18 +25,20 @@ var (
 )
 
 var actorCmd = &cobra.Command{
-	Use:   "actor [name]",
+	Use:   "actor [name] [index]",
 	Short: "Find an actor's filmography with streaming availability.",
-	Args:  cobra.MaximumNArgs(1),
+	Args:  cobra.MaximumNArgs(2),
 	Run:   runActor,
 	Long: `Search for an actor and display their movies with ratings and availability.
 If no name is provided with --list flag, shows popular actors.
 If search results have multiple matches, displays a list to choose from.
+You can specify an index to select a specific actor from multiple results.
 
 Examples:
   tmdb actor
   tmdb actor "Leonardo DiCaprio"
-  tmdb actor "Tom"`,
+  tmdb actor "Tom" 1
+  tmdb actor "Megan Fox" 2`,
 }
 
 func init() {
@@ -51,8 +54,22 @@ func init() {
 func runActor(cmd *cobra.Command, args []string) {
 	cfg := config.Get()
 	var actorName string
+	var actorIndex int = -1
+
 	if len(args) > 0 {
-		actorName = strings.Join(args, " ")
+		actorName = args[0]
+	}
+
+	// Check if second argument is provided (actor index)
+	if len(args) > 1 {
+		var err error
+		actorIndex, err = strconv.Atoi(args[1])
+		if err != nil || actorIndex < 1 {
+			fmt.Printf("Invalid actor index: %s. Please provide a positive number (1, 2, 3, ...)\n", args[1])
+			return
+		}
+		// Convert to 0-based index
+		actorIndex--
 	}
 
 	finalRegion := cfg.Region
@@ -107,6 +124,24 @@ func runActor(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	// Sort all results by popularity (descending) so index matches displayed order
+	sort.Slice(actorResults.Results, func(i, j int) bool {
+		return actorResults.Results[i].Popularity > actorResults.Results[j].Popularity
+	})
+
+	// If actor index is provided, use it to select from sorted results
+	if actorIndex >= 0 {
+		if actorIndex >= len(actorResults.Results) {
+			fmt.Printf("Invalid actor index: %d. Found only %d actors matching '%s' (use 1-%d)\n", 
+				actorIndex+1, len(actorResults.Results), actorName, len(actorResults.Results))
+			displayActorMatches(actorResults.Results)
+			return
+		}
+		actor := actorResults.Results[actorIndex]
+		displayActorFilmography(client, actor, finalRegion, finalProviders, finalMinRating, finalMinVotes, desiredProviders)
+		return
+	}
+
 	// If multiple results and --list flag is set, show the list
 	if len(actorResults.Results) > 1 && actorList {
 		displayActorMatches(actorResults.Results)
@@ -117,7 +152,7 @@ func runActor(cmd *cobra.Command, args []string) {
 	if len(actorResults.Results) > 1 {
 		fmt.Printf("Found %d actors matching '%s'. Did you mean one of these?\n\n", len(actorResults.Results), actorName)
 		displayActorMatches(actorResults.Results)
-		fmt.Printf("\nTo view filmography, use:\n  tmdb actor \"%s\"\n\n", actorResults.Results[0].Name)
+		fmt.Printf("\nTo view filmography, use:\n  tmdb actor \"%s\" 1\n\n", actorName)
 		return
 	}
 
@@ -129,21 +164,15 @@ func runActor(cmd *cobra.Command, args []string) {
 func displayActorMatches(actors []models.Actor) {
 	display.DisplaySeparator()
 
-	// Sort actors by popularity (descending)
-	sortedActors := actors
-	sort.Slice(sortedActors, func(i, j int) bool {
-		return sortedActors[i].Popularity > sortedActors[j].Popularity
-	})
-
-	// Display top popularactors
+	// Display top actors (already sorted by popularity)
 	displayCount := 0
 	maxDisplay := 15
 
-	for i := 0; i < len(sortedActors) && displayCount < maxDisplay; i++ {
-		actor := sortedActors[i]
+	for i := 0; i < len(actors) && displayCount < maxDisplay; i++ {
+		actor := actors[i]
 		displayCount++
 		display.DisplayActor(display.ActorDisplay{
-			Number:     i + 1,
+			Number:     displayCount,
 			Name:       actor.Name,
 			Popularity: actor.Popularity,
 			TmdbID:     actor.ID,
