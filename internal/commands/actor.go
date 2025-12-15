@@ -2,12 +2,14 @@ package commands
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/sebastianneubert/tmdb/internal/api"
 	"github.com/sebastianneubert/tmdb/internal/config"
 	"github.com/sebastianneubert/tmdb/internal/display"
 	"github.com/sebastianneubert/tmdb/internal/filters"
+	"github.com/sebastianneubert/tmdb/internal/models"
 	"github.com/spf13/cobra"
 )
 
@@ -17,14 +19,23 @@ var (
 	actorMinRating float64
 	actorMinVotes  int
 	actorTimeout   int
+	actorGenre     string
+	actorList      bool
 )
 
 var actorCmd = &cobra.Command{
 	Use:   "actor [name]",
 	Short: "Find an actor's filmography with streaming availability.",
-	Long:  "Search for an actor and display their movies with ratings and availability.",
-	Args:  cobra.MinimumNArgs(1),
+	Args:  cobra.MaximumNArgs(1),
 	Run:   runActor,
+	Long: `Search for an actor and display their movies with ratings and availability.
+If no name is provided with --list flag, shows popular actors.
+If search results have multiple matches, displays a list to choose from.
+
+Examples:
+  tmdb actor
+  tmdb actor "Leonardo DiCaprio"
+  tmdb actor "Tom"`,
 }
 
 func init() {
@@ -33,11 +44,16 @@ func init() {
 	actorCmd.Flags().Float64Var(&actorMinRating, "min-rating", config.DefaultMinRating, "Minimum rating")
 	actorCmd.Flags().IntVar(&actorMinVotes, "min-votes", config.DefaultMinVotes, "Minimum votes")
 	actorCmd.Flags().IntVarP(&actorTimeout, "timeout", "T", config.DefaultTimeout, "Timeout in seconds")
+	actorCmd.Flags().StringVar(&actorGenre, "genre", "", "Filter by genre (name or ID)")
+	actorCmd.Flags().BoolVar(&actorList, "list", false, "List actors instead of fetching filmography")
 }
 
 func runActor(cmd *cobra.Command, args []string) {
-	actorName := strings.Join(args, " ")
 	cfg := config.Get()
+	var actorName string
+	if len(args) > 0 {
+		actorName = strings.Join(args, " ")
+	}
 
 	finalRegion := cfg.Region
 	if cmd.Flags().Changed("region") {
@@ -72,6 +88,12 @@ func runActor(cmd *cobra.Command, args []string) {
 
 	desiredProviders := filters.ParseProviders(finalProviders)
 
+	// If --list flag is set and no actor name provided, show popular actors
+	if actorList || actorName == "" {
+		displayPopularActors(client, finalRegion)
+		return
+	}
+
 	fmt.Printf("Searching for actor: %s\n\n", actorName)
 
 	actorResults, err := client.SearchActor(actorName, finalRegion)
@@ -85,7 +107,93 @@ func runActor(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	// If multiple results and --list flag is set, show the list
+	if len(actorResults.Results) > 1 && actorList {
+		displayActorMatches(actorResults.Results)
+		return
+	}
+
+	// If multiple results and no --list flag, show matches prompt
+	if len(actorResults.Results) > 1 {
+		fmt.Printf("Found %d actors matching '%s'. Did you mean one of these?\n\n", len(actorResults.Results), actorName)
+		displayActorMatches(actorResults.Results)
+		fmt.Printf("\nTo view filmography, use:\n  tmdb actor \"%s\"\n\n", actorResults.Results[0].Name)
+		return
+	}
+
+	// Proceed with single match
 	actor := actorResults.Results[0]
+	displayActorFilmography(client, actor, finalRegion, finalProviders, finalMinRating, finalMinVotes, desiredProviders)
+}
+
+func displayActorMatches(actors []models.Actor) {
+	display.DisplaySeparator()
+
+	// Sort actors by popularity (descending)
+	sortedActors := actors
+	sort.Slice(sortedActors, func(i, j int) bool {
+		return sortedActors[i].Popularity > sortedActors[j].Popularity
+	})
+
+	// Display top popularactors
+	displayCount := 0
+	maxDisplay := 15
+
+	for i := 0; i < len(sortedActors) && displayCount < maxDisplay; i++ {
+		actor := sortedActors[i]
+		displayCount++
+		display.DisplayActor(display.ActorDisplay{
+			Number:     i + 1,
+			Name:       actor.Name,
+			Popularity: actor.Popularity,
+			TmdbID:     actor.ID,
+		})
+	}
+	display.DisplaySeparator()
+}
+
+func displayPopularActors(client *api.Client, language string) {
+	fmt.Println("Fetching popular actors...")
+	fmt.Println("Popular actors:")
+
+	results, err := client.GetPopularActors(language, 1)
+	if err != nil {
+		fmt.Printf("Error fetching popular actors: %v\n", err)
+		return
+	}
+
+	if len(results.Results) == 0 {
+		fmt.Println("No popular actors found.")
+		return
+	}
+
+	// Sort actors by popularity (descending)
+	sortedActors := results.Results
+	sort.Slice(sortedActors, func(i, j int) bool {
+		return sortedActors[i].Popularity > sortedActors[j].Popularity
+	})
+
+	display.DisplaySeparator()
+
+	// Display top 10 actors
+	displayCount := 0
+	maxDisplay := 15
+
+	for i := 0; i < len(sortedActors) && displayCount < maxDisplay; i++ {
+		actor := sortedActors[i]
+		displayCount++
+		display.DisplayActor(display.ActorDisplay{
+			Number:     displayCount,
+			Name:       actor.Name,
+			Popularity: actor.Popularity,
+			TmdbID:     actor.ID,
+		})
+	}
+	display.DisplaySeparator()
+	fmt.Printf("Showing top %d popular actors\n", displayCount)
+}
+
+func displayActorFilmography(client *api.Client, actor models.Actor, finalRegion, finalProviders string, finalMinRating float64, finalMinVotes int, desiredProviders map[string]bool) {
 	fmt.Printf("Found: %s (TMDb ID: %d)\n", display.TitleStyle.Render(actor.Name), actor.ID)
 	fmt.Printf("Fetching filmography...\n\n")
 
@@ -107,17 +215,14 @@ func runActor(cmd *cobra.Command, args []string) {
 	moviesChecked := 0
 
 	for _, movie := range credits.Cast {
-		if !filters.MeetsRatingCriteria(movie.VoteAverage, movie.VoteCount, actorMinRating, actorMinVotes) {
+		if !filters.MeetsRatingCriteria(movie.VoteAverage, movie.VoteCount, finalMinRating, finalMinVotes) {
 			continue
 		}
 
 		moviesChecked++
 
-		providerData, err := client.GetWatchProviders(movie.ID, actorRegion)
+		providerData, err := client.GetWatchProviders(movie.ID, finalRegion)
 		if err != nil {
-		  if cfg.DEBUG {
-		    fmt.Printf("Error fetching providers for %s: %v\n", movie.Title, err)
-		  }
 			continue
 		}
 

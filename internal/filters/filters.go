@@ -1,8 +1,8 @@
 package filters
 
 import (
-	"strings"
 	"strconv"
+	"strings"
 
 	"github.com/sebastianneubert/tmdb/internal/models"
 )
@@ -115,4 +115,14 @@ func GetGenreNames(genreIDs []int, genres []models.Genre) []string {
 		}
 	}
 	return names
+}
+
+func ByActorPopularity(actors []models.Actor, minPopularity float64) []models.Actor {
+	filtered := []models.Actor{}
+	for _, actor := range actors {
+		if actor.Popularity >= minPopularity {
+			filtered = append(filtered, actor)
+		}
+	}
+	return filtered
 }
