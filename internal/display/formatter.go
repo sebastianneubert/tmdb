@@ -79,6 +79,21 @@ type ShowDisplay struct {
 	Overview        string
 }
 
+type ActorDisplay struct {
+	Number      int
+	Name        string
+	Popularity  float64
+	TmdbID      int
+	ProfilePath string
+}
+
+func DisplayActor(a ActorDisplay) {
+	fmt.Println(SeparatorStyle.Render(strings.Repeat("-", 60)))
+	fmt.Printf("%d. %s\n", a.Number, ActorNameStyle.Render(a.Name))
+	fmt.Printf("   Popularity: %s\n", PopularityStyle.Render(fmt.Sprintf("%.1f", a.Popularity)))
+	fmt.Printf("   TMDb Profile: https://www.themoviedb.org/person/%d\n", a.TmdbID)
+}
+
 func DisplayShow(s ShowDisplay) {
 	fmt.Println(SeparatorStyle.Render(strings.Repeat("=", 60)))
 

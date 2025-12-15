@@ -1,8 +1,8 @@
 package filters
 
 import (
-	"strings"
 	"strconv"
+	"strings"
 
 	"github.com/sebastianneubert/tmdb/internal/models"
 )

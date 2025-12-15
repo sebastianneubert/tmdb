@@ -43,21 +43,49 @@ go build -o tmdb cmd/main.go # or make build
 # Show filmographies of a specific actor
 ./tmdb actor "Nicolas Cage"
 
-# search for movies with "star" in the title like Star Wars, Star Trek, etc.
+# List popular actors
+./tmdb actor --list
+
+# Search for actors with partial name match and show all options
+./tmdb actor "tom"
+
+# Select specific actor from multiple results by index
+./tmdb actor "Megan Fox" 1
+
+# Search for movies with "star" in the title like Star Wars, Star Trek, etc.
 ./tmdb search star
 
 # Show top rated shows
 ./tmdb shows --min-rating 8.0
 ```
 
+## Actor Command - Multiple Results
+
+When searching for an actor that returns multiple results (e.g., "Tom" returns multiple actors named Tom):
+
+1. **Without index**: Shows a list of matching actors
+   ```bash
+   tmdb actor "tom"
+   # Output shows: Tom Hanks, Tom Hardy, Tom Cruise, etc.
+   ```
+
+2. **With index**: Directly selects and fetches filmography for a specific actor
+   ```bash
+   tmdb actor "tom" 1        # Fetch Tom Hanks filmography
+   tmdb actor "tom" 2        # Fetch Tom Hardy filmography  
+   tmdb actor "Megan Fox" 1  # Fetch first Megan Fox
+   tmdb actor "Megan Fox" 2  # Fetch second Megan Fox
+   ```
+
+The index corresponds to the order shown in the search results (1-based indexing).
+
 ## Missing Features
 
 - [x] add movie search by title
-- [ ] add more filters like genre, release year, etc.
+- [x] add more filters like genre, release year, etc.
 - [ ] caching of API responses to reduce load times and API calls
 - [ ] fomo command. List movies leaving streaming services soon.
-- [ ] add tests
+- [x] add tests
 - [ ] generate .env file with setup command (interactive shell)
 - [ ] command with some recommendations of actors
-- [ ] search actors and list possible matches for misspellings or non-exact names
-
+- [x] search actors and list possible matches for misspellings or non-exact names, list by popularity, if no name provided

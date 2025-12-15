@@ -24,4 +24,13 @@ var (
 	ProviderStyle = lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#00BFFF")).
 		Bold(true)
+
+	ActorNameStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#FFD700")).
+		Inline(true)
+
+	PopularityStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#00FF00")).
+		Inline(true)
 )
