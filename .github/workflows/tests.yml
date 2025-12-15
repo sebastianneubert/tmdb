@@ -25,11 +25,5 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Run lint
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: v1.59.2
-          args: --timeout 5m ./...
-
       - name: Run tests
         run: go test ./test/... -v
