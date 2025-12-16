@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sebastianneubert/tmdb/internal/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/sebastianneubert/tmdb/internal/config"
 )
 
 var rootCmd = &cobra.Command{
@@ -23,6 +23,7 @@ Die Konfiguration erfolgt über die .env Datei oder Umgebungsvariablen.`,
 func init() {
 	cobra.OnInitialize(config.Init)
 	rootCmd.AddCommand(topCmd)
+	rootCmd.AddCommand(popularCmd)
 	rootCmd.AddCommand(actorCmd)
 	rootCmd.AddCommand(showsCmd)
 	rootCmd.AddCommand(searchCmd)
@@ -30,7 +31,8 @@ func init() {
 }
 
 func Execute() {
-  bindCommandFlags(topCmd)
+	bindCommandFlags(topCmd)
+	bindCommandFlags(popularCmd)
 	bindCommandFlags(actorCmd)
 	bindCommandFlags(searchCmd)
 	bindCommandFlags(showsCmd)

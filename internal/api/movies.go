@@ -26,6 +26,24 @@ func (c *Client) GetTopRatedMovies(page int, language string) (*models.DiscoverR
 	return &response, nil
 }
 
+func (c *Client) GetPopularMovies(page int, language string) (*models.DiscoverResponse, error) {
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(page))
+	params.Set("language", language)
+
+	req, err := c.createRequest("/movie/popular", params)
+	if err != nil {
+		return nil, err
+	}
+
+	var response models.DiscoverResponse
+	if err := c.doRequest(req, &response); err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}
+
 func (c *Client) GetWatchProviders(movieID int, region string) (models.RegionProviders, error) {
 	apiPath := fmt.Sprintf("/movie/%d/watch/providers", movieID)
 	req, err := c.createRequest(apiPath, url.Values{})
