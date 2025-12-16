@@ -60,10 +60,10 @@ func (c *Client) GetExternalIDs(movieID int) (models.ExternalIDs, error) {
 	return response, nil
 }
 
-func (c *Client) GetEnglishTitle(movieID int) (string, error) {
+func (c *Client) GetRegionalTitle(movieID int, language string) (string, error) {
 	apiPath := fmt.Sprintf("/movie/%d", movieID)
 	params := url.Values{}
-	params.Set("language", "en-US")
+	params.Set("language", language)
 
 	req, err := c.createRequest(apiPath, params)
 	if err != nil {
@@ -76,6 +76,10 @@ func (c *Client) GetEnglishTitle(movieID int) (string, error) {
 	}
 
 	return response.Title, nil
+}
+
+func (c *Client) GetEnglishTitle(movieID int) (string, error) {
+	return c.GetRegionalTitle(movieID, "en-US")
 }
 
 func (c *Client) SearchMovie(query string, language string, region string) (*models.DiscoverResponse, error) {

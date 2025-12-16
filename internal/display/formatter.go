@@ -6,18 +6,18 @@ import (
 )
 
 type MovieDisplay struct {
-	Number          int
-	Title           string
-	EnglishTitle    string
-	Year            string
-	Rating          float64
-	Votes           int
-	Providers       []string
-	TmdbID          int
-	ImdbID          string
-	Overview        string
-	Character       string
-	Genres          []string
+	Number       int
+	Title        string
+	EnglishTitle string
+	Year         string
+	Rating       float64
+	Votes        int
+	Providers    []string
+	TmdbID       int
+	ImdbID       string
+	Overview     string
+	Character    string
+	Genres       []string
 }
 
 func DisplayMovie(m MovieDisplay) {
@@ -66,17 +66,17 @@ func truncateString(s string, maxLen int) string {
 }
 
 type ShowDisplay struct {
-	Number          int
-	Title           string
-	EnglishTitle    string
-	Year            string
-	Rating          float64
-	Votes           int
-	Providers       []string
-	TmdbID          int
-	ImdbID          string
-	TvdbID          int
-	Overview        string
+	Number       int
+	Title        string
+	EnglishTitle string
+	Year         string
+	Rating       float64
+	Votes        int
+	Providers    []string
+	TmdbID       int
+	ImdbID       string
+	TvdbID       int
+	Overview     string
 }
 
 type ActorDisplay struct {

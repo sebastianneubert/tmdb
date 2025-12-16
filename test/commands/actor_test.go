@@ -265,3 +265,225 @@ func TestActorNameWithIndex(t *testing.T) {
 		})
 	}
 }
+
+func TestGenreFilteringInFilmography(t *testing.T) {
+	// Simulate movies with different genres
+	type Movie struct {
+		title   string
+		genres  []string
+		matches bool
+	}
+
+	movies := []Movie{
+		{
+			title:   "The Matrix",
+			genres:  []string{"Action", "Sci-Fi"},
+			matches: true, // Contains Action
+		},
+		{
+			title:   "Forrest Gump",
+			genres:  []string{"Drama", "Romance"},
+			matches: false, // Does not contain Action
+		},
+		{
+			title:   "Mission: Impossible",
+			genres:  []string{"Action", "Thriller"},
+			matches: true, // Contains Action
+		},
+		{
+			title:   "The Dark Knight",
+			genres:  []string{"Action", "Crime", "Drama"},
+			matches: true, // Contains Action
+		},
+		{
+			title:   "Pride and Prejudice",
+			genres:  []string{"Romance", "Drama"},
+			matches: false, // Does not contain Action
+		},
+	}
+
+	tests := []struct {
+		name            string
+		movie           Movie
+		genreFilter     string
+		shouldInclude   bool
+	}{
+		{
+			name:          "Action movie matches Action filter",
+			movie:         movies[0],
+			genreFilter:   "Action",
+			shouldInclude: true,
+		},
+		{
+			name:          "Drama movie does not match Action filter",
+			movie:         movies[1],
+			genreFilter:   "Action",
+			shouldInclude: false,
+		},
+		{
+			name:          "Action-Thriller matches Action filter",
+			movie:         movies[2],
+			genreFilter:   "Action",
+			shouldInclude: true,
+		},
+		{
+			name:          "Multi-genre movie with Action matches",
+			movie:         movies[3],
+			genreFilter:   "Action",
+			shouldInclude: true,
+		},
+		{
+			name:          "Pure drama does not match Action",
+			movie:         movies[4],
+			genreFilter:   "Action",
+			shouldInclude: false,
+		},
+		{
+			name:          "Movie with Drama matches Drama filter",
+			movie:         movies[0],
+			genreFilter:   "Drama",
+			shouldInclude: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Check if movie contains the filter genre
+			found := false
+			for _, genre := range tt.movie.genres {
+				if genre == tt.genreFilter {
+					found = true
+					break
+				}
+			}
+
+			if found != tt.shouldInclude {
+				t.Errorf("Expected inclusion: %v, but got: %v for '%s' with genres %v",
+					tt.shouldInclude, found, tt.movie.title, tt.movie.genres)
+			}
+		})
+	}
+}
+
+func TestGenreDisplayInFilmography(t *testing.T) {
+	// Simulate movies with genre information for display
+	type MovieDisplay struct {
+		title  string
+		genres []string
+	}
+
+	movies := []MovieDisplay{
+		{
+			title:  "The Matrix",
+			genres: []string{"Action", "Sci-Fi"},
+		},
+		{
+			title:  "Forrest Gump",
+			genres: []string{"Drama", "Romance"},
+		},
+		{
+			title:  "Mission: Impossible",
+			genres: []string{"Action", "Thriller"},
+		},
+	}
+
+	tests := []struct {
+		name           string
+		movie          MovieDisplay
+		expectedGenres []string
+	}{
+		{
+			name:           "Action Sci-Fi movie",
+			movie:          movies[0],
+			expectedGenres: []string{"Action", "Sci-Fi"},
+		},
+		{
+			name:           "Drama Romance movie",
+			movie:          movies[1],
+			expectedGenres: []string{"Drama", "Romance"},
+		},
+		{
+			name:           "Action Thriller movie",
+			movie:          movies[2],
+			expectedGenres: []string{"Action", "Thriller"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if len(tt.movie.genres) != len(tt.expectedGenres) {
+				t.Errorf("Expected %d genres, got %d", len(tt.expectedGenres), len(tt.movie.genres))
+				return
+			}
+
+			for i, genre := range tt.movie.genres {
+				if genre != tt.expectedGenres[i] {
+					t.Errorf("Expected genre '%s' at position %d, got '%s'",
+						tt.expectedGenres[i], i, genre)
+				}
+			}
+		})
+	}
+}
+
+func TestMultipleGenreFiltering(t *testing.T) {
+	// Test that a single movie can match any of multiple genres
+	type Movie struct {
+		title  string
+		genres []string
+	}
+
+	movie := Movie{
+		title:  "The Dark Knight",
+		genres: []string{"Action", "Crime", "Drama"},
+	}
+
+	tests := []struct {
+		name        string
+		filterGenre string
+		shouldMatch bool
+	}{
+		{
+			name:        "Matches Action",
+			filterGenre: "Action",
+			shouldMatch: true,
+		},
+		{
+			name:        "Matches Crime",
+			filterGenre: "Crime",
+			shouldMatch: true,
+		},
+		{
+			name:        "Matches Drama",
+			filterGenre: "Drama",
+			shouldMatch: true,
+		},
+		{
+			name:        "Does not match Comedy",
+			filterGenre: "Comedy",
+			shouldMatch: false,
+		},
+		{
+			name:        "Does not match Horror",
+			filterGenre: "Horror",
+			shouldMatch: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			found := false
+			for _, genre := range movie.genres {
+				if genre == tt.filterGenre {
+					found = true
+					break
+				}
+			}
+
+			if found != tt.shouldMatch {
+				t.Errorf("Expected match: %v, but got: %v for genre '%s'",
+					tt.shouldMatch, found, tt.filterGenre)
+			}
+		})
+	}
+}

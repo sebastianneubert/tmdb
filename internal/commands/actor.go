@@ -33,12 +33,14 @@ var actorCmd = &cobra.Command{
 If no name is provided with --list flag, shows popular actors.
 If search results have multiple matches, displays a list to choose from.
 You can specify an index to select a specific actor from multiple results.
+Movies are displayed with genres and filtered by region-specific titles.
 
 Examples:
   tmdb actor
   tmdb actor "Leonardo DiCaprio"
   tmdb actor "Tom" 1
-  tmdb actor "Megan Fox" 2`,
+  tmdb actor "Megan Fox" 2
+  tmdb actor "Tom Hanks" --genre Action`,
 }
 
 func init() {
@@ -105,6 +107,16 @@ func runActor(cmd *cobra.Command, args []string) {
 
 	desiredProviders := filters.ParseProviders(finalProviders)
 
+	// Fetch genres for filtering
+	var genreList []models.Genre
+	var genreMap map[string]int
+
+	genreResp, err := client.GetGenres(finalRegion)
+	if err == nil {
+		genreList = genreResp.Genres
+		genreMap = filters.BuildGenreMap(genreList)
+	}
+
 	// If --list flag is set and no actor name provided, show popular actors
 	if actorList || actorName == "" {
 		displayPopularActors(client, finalRegion)
@@ -138,7 +150,7 @@ func runActor(cmd *cobra.Command, args []string) {
 			return
 		}
 		actor := actorResults.Results[actorIndex]
-		displayActorFilmography(client, actor, finalRegion, finalProviders, finalMinRating, finalMinVotes, desiredProviders)
+		displayActorFilmography(client, actor, finalRegion, finalProviders, finalMinRating, finalMinVotes, desiredProviders, actorGenre, genreList, genreMap)
 		return
 	}
 
@@ -158,7 +170,7 @@ func runActor(cmd *cobra.Command, args []string) {
 
 	// Proceed with single match
 	actor := actorResults.Results[0]
-	displayActorFilmography(client, actor, finalRegion, finalProviders, finalMinRating, finalMinVotes, desiredProviders)
+	displayActorFilmography(client, actor, finalRegion, finalProviders, finalMinRating, finalMinVotes, desiredProviders, actorGenre, genreList, genreMap)
 }
 
 func displayActorMatches(actors []models.Actor) {
@@ -222,7 +234,7 @@ func displayPopularActors(client *api.Client, language string) {
 	fmt.Printf("Showing top %d popular actors\n", displayCount)
 }
 
-func displayActorFilmography(client *api.Client, actor models.Actor, finalRegion, finalProviders string, finalMinRating float64, finalMinVotes int, desiredProviders map[string]bool) {
+func displayActorFilmography(client *api.Client, actor models.Actor, finalRegion, finalProviders string, finalMinRating float64, finalMinVotes int, desiredProviders map[string]bool, genreFilter string, genreList []models.Genre, genreMap map[string]int) {
 	fmt.Printf("Found: %s (TMDb ID: %d)\n", display.TitleStyle.Render(actor.Name), actor.ID)
 	fmt.Printf("Fetching filmography...\n\n")
 
@@ -260,16 +272,30 @@ func displayActorFilmography(client *api.Client, actor models.Actor, finalRegion
 			continue
 		}
 
+		// Apply genre filter
+		if genreFilter != "" && !filters.FilterByGenre(&movie, genreFilter, genreMap) {
+			continue
+		}
+
 		resultsFound++
 		externalIDs, _ := client.GetExternalIDs(movie.ID)
 		englishTitle, _ := client.GetEnglishTitle(movie.ID)
 		if englishTitle == "" {
 			englishTitle = movie.OriginalTitle
 		}
+		
+		// Get region-specific title (e.g., DE -> de-DE)
+		languageCode := strings.ToLower(finalRegion) + "-" + strings.ToUpper(finalRegion)
+		regionalTitle, _ := client.GetRegionalTitle(movie.ID, languageCode)
+		if regionalTitle == "" {
+			regionalTitle = movie.Title
+		}
+
+		genreNames := filters.GetGenreNames(movie.GenreIDs, genreList)
 
 		display.DisplayMovie(display.MovieDisplay{
 			Number:       resultsFound,
-			Title:        movie.Title,
+			Title:        regionalTitle,
 			EnglishTitle: englishTitle,
 			Year:         movie.GetYear(),
 			Rating:       movie.VoteAverage,
@@ -279,6 +305,7 @@ func displayActorFilmography(client *api.Client, actor models.Actor, finalRegion
 			ImdbID:       externalIDs.ImdbID,
 			Overview:     movie.Overview,
 			Character:    movie.Character,
+			Genres:       genreNames,
 		})
 
 		if resultsFound >= config.MaxResultsToDisplay {
