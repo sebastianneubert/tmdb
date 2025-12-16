@@ -4,7 +4,7 @@ build:
 	go build -o tmdb cmd/main.go
 
 test:
-	go test ./test/...
+	go test -v ./test/...
 
 run:
 	go run cmd/main.go
