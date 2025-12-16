@@ -2,13 +2,13 @@ package commands
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/sebastianneubert/tmdb/internal/api"
 	"github.com/sebastianneubert/tmdb/internal/config"
 	"github.com/sebastianneubert/tmdb/internal/display"
 	"github.com/sebastianneubert/tmdb/internal/filters"
 	"github.com/sebastianneubert/tmdb/internal/models"
+	"github.com/sebastianneubert/tmdb/internal/processor"
 	"github.com/spf13/cobra"
 )
 
@@ -37,14 +37,11 @@ func runTop(cmd *cobra.Command, args []string) {
 	}
 
 	desiredProviders := filters.ParseProviders(finalProviders)
-
 	genreList, genreMap := LoadGenres(client)
 
-	fmt.Printf("Searching TMDb's Top Rated Movies...\n")
-	fmt.Printf("Criteria: Min Rating: %.1f | Min Votes: %d\n", finalMinRating, finalMinVotes)
-	fmt.Printf("Filtering for [%s] in region [%s]\n\n", finalProviders, strings.ToUpper(finalRegion))
+	display.PrintSearchStartMessage("Top Rated Movies", finalMinRating, finalMinVotes, finalProviders, finalRegion)
 
-	processor := NewMovieProcessor(client, MovieFilterConfig{
+	processor := processor.NewMovieProcessor(client, processor.FilterConfig{
 		MinRating:        finalMinRating,
 		MinVotes:         finalMinVotes,
 		Region:           finalRegion,
@@ -54,32 +51,17 @@ func runTop(cmd *cobra.Command, args []string) {
 		GenreMap:         genreMap,
 	})
 
+	fetcher := display.NewDetailsFetcher(client, finalRegion, genreList)
 	resultsFound := 0
+
 	err = processor.Process(
 		func(page int) (*models.DiscoverResponse, error) {
 			return client.GetTopRatedMovies(page, finalRegion)
 		},
 		func(movie *models.Movie, providers []string, genres []string) error {
 			resultsFound++
-			externalIDs, _ := client.GetExternalIDs(movie.ID)
-			englishTitle, _ := client.GetEnglishTitle(movie.ID)
-			if englishTitle == "" {
-				englishTitle = movie.OriginalTitle
-			}
-
-			display.DisplayMovie(display.MovieDisplay{
-				Number:       resultsFound,
-				Title:        movie.GetTitle(),
-				EnglishTitle: englishTitle,
-				Year:         movie.GetYear(),
-				Rating:       movie.VoteAverage,
-				Votes:        movie.VoteCount,
-				Providers:    providers,
-				TmdbID:       movie.ID,
-				ImdbID:       externalIDs.ImdbID,
-				Overview:     movie.Overview,
-				Genres:       genres,
-			})
+			movieDisplay := fetcher.BuildMovieDisplay(resultsFound, movie, providers, genres)
+			display.DisplayMovie(movieDisplay)
 			return nil
 		},
 	)
@@ -89,10 +71,5 @@ func runTop(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	display.DisplaySeparator()
-	if resultsFound == 0 {
-		fmt.Println("No movies found matching criteria.")
-	} else {
-		fmt.Printf("Displayed %d top-rated movies.\n", resultsFound)
-	}
+	display.PrintSearchResultsSummary("top-rated movies", resultsFound)
 }

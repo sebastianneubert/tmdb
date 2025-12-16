@@ -1,4 +1,4 @@
-package commands
+package processor
 
 import (
 	"fmt"
@@ -9,8 +9,8 @@ import (
 	"github.com/sebastianneubert/tmdb/internal/models"
 )
 
-// MovieFilterConfig holds all configuration needed for processing and filtering movies
-type MovieFilterConfig struct {
+// FilterConfig holds all configuration needed for processing and filtering movies
+type FilterConfig struct {
 	MinRating        float64
 	MinVotes         int
 	Region           string
@@ -23,11 +23,11 @@ type MovieFilterConfig struct {
 // MovieProcessor handles fetching, filtering, and processing movies
 type MovieProcessor struct {
 	client *api.Client
-	config MovieFilterConfig
+	config FilterConfig
 }
 
 // NewMovieProcessor creates a new MovieProcessor instance
-func NewMovieProcessor(client *api.Client, config MovieFilterConfig) *MovieProcessor {
+func NewMovieProcessor(client *api.Client, config FilterConfig) *MovieProcessor {
 	return &MovieProcessor{
 		client: client,
 		config: config,

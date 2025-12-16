@@ -48,7 +48,6 @@ func runSearch(cmd *cobra.Command, args []string) {
 	}
 
 	desiredProviders := filters.ParseProviders(finalProviders)
-
 	genreList, genreMap := LoadGenres(client)
 
 	fmt.Printf("🔍 Searching for: \"%s\"\n", query)
@@ -68,23 +67,24 @@ func runSearch(cmd *cobra.Command, args []string) {
 
 	fmt.Printf("Found %d movies, filtering...\n\n", len(searchResp.Results))
 
+	fetcher := display.NewDetailsFetcher(client, finalRegion, genreList)
 	resultsFound := 0
-	moviesChecked := 0
 
 	for _, movie := range searchResp.Results {
 		if resultsFound >= searchMaxResults {
 			break
 		}
 
-		moviesChecked++
+		// Use processor pattern for filtering
+		m := movie
 
 		// Apply rating and vote filters
-		if !filters.MeetsRatingCriteria(movie.VoteAverage, movie.VoteCount, finalMinRating, finalMinVotes) {
+		if !filters.MeetsRatingCriteria(m.VoteAverage, m.VoteCount, finalMinRating, finalMinVotes) {
 			continue
 		}
 
 		// Check streaming availability
-		providerData, err := client.GetWatchProviders(movie.ID, finalRegion)
+		providerData, err := client.GetWatchProviders(m.ID, finalRegion)
 		if err != nil {
 			continue
 		}
@@ -94,46 +94,21 @@ func runSearch(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		if searchGenre != "" && !filters.FilterByGenre(&movie, searchGenre, genreMap) {
+		if searchGenre != "" && !filters.FilterByGenre(&m, searchGenre, genreMap) {
 			continue
 		}
 
 		// Movie matches all criteria
 		resultsFound++
 
-		// Get additional details
-		externalIDs, _ := client.GetExternalIDs(movie.ID)
-		englishTitle, _ := client.GetEnglishTitle(movie.ID)
-		if englishTitle == "" {
-			englishTitle = movie.OriginalTitle
-		}
-
-		genreNames := filters.GetGenreNames(movie.GenreIDs, genreList)
-
-		display.DisplayMovie(display.MovieDisplay{
-			Number:       resultsFound,
-			Title:        movie.GetTitle(),
-			EnglishTitle: englishTitle,
-			Year:         movie.GetYear(),
-			Rating:       movie.VoteAverage,
-			Votes:        movie.VoteCount,
-			Providers:    availableProviders,
-			TmdbID:       movie.ID,
-			ImdbID:       externalIDs.ImdbID,
-			Overview:     movie.Overview,
-			Genres:       genreNames,
-		})
+		genreNames := filters.GetGenreNames(m.GenreIDs, genreList)
+		movieDisplay := fetcher.BuildMovieDisplaySimple(resultsFound, &m, availableProviders, genreNames)
+		display.DisplayMovie(movieDisplay)
 	}
 
-	display.DisplaySeparator()
 	if resultsFound == 0 {
-		fmt.Printf("No movies found for \"%s\" that meet criteria and are available on your providers.\n", query)
-		fmt.Printf("(Checked %d movies from search results)\n", moviesChecked)
-		fmt.Println("\nTry:")
-		fmt.Printf("  - Lowering --min-rating (current: %.1f)\n", finalMinRating)
-		fmt.Printf("  - Lowering --min-votes (current: %d)\n", finalMinVotes)
-		fmt.Printf("  - Adding more --providers\n")
+		display.PrintSearchNoResults(query, len(searchResp.Results), finalMinRating, finalMinVotes)
 	} else {
-		fmt.Printf("Search complete: Displayed %d movies (out of %d checked).\n", resultsFound, moviesChecked)
+		display.PrintSearchCompleteMessage(resultsFound, len(searchResp.Results))
 	}
 }
