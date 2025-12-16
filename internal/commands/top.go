@@ -4,22 +4,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/sebastianneubert/tmdb/internal/api"
 	"github.com/sebastianneubert/tmdb/internal/config"
 	"github.com/sebastianneubert/tmdb/internal/display"
 	"github.com/sebastianneubert/tmdb/internal/filters"
 	"github.com/sebastianneubert/tmdb/internal/models"
+	"github.com/spf13/cobra"
 )
 
-var (
-	topProviders string
-	topRegion    string
-	topMinRating float64
-	topMinVotes  int
-	topTimeout   int
-	topGenre     string
-)
+var topFlags = MovieCommandFlags{}
 
 var topCmd = &cobra.Command{
 	Use:   "top",
@@ -29,41 +22,13 @@ var topCmd = &cobra.Command{
 }
 
 func init() {
-	topCmd.Flags().StringVarP(&topProviders, "providers", "p", config.DefaultProviders, "Comma-separated providers")
-	topCmd.Flags().StringVarP(&topRegion, "region", "r", config.DefaultRegion, "Watch region")
-	topCmd.Flags().Float64Var(&topMinRating, "min-rating", config.DefaultMinRating, "Minimum rating")
-	topCmd.Flags().IntVar(&topMinVotes, "min-votes", config.DefaultMinVotes, "Minimum votes")
-	topCmd.Flags().IntVarP(&topTimeout, "timeout", "T", config.DefaultTimeout, "Timeout in seconds")
-	topCmd.Flags().StringVar(&topGenre, "genre", "", "Filter by genre (name or ID)")
+	topFlags.Register(topCmd, true)
 }
 
 func runTop(cmd *cobra.Command, args []string) {
 	cfg := config.Get()
 
-	finalRegion := cfg.Region
-	if cmd.Flags().Changed("region") {
-		finalRegion = topRegion
-	}
-
-	finalProviders := cfg.Providers
-	if cmd.Flags().Changed("providers") {
-		finalProviders = topProviders
-	}
-
-	finalMinRating := cfg.MinRating
-	if cmd.Flags().Changed("min-rating") {
-		finalMinRating = topMinRating
-	}
-
-	finalMinVotes := cfg.MinVotes
-	if cmd.Flags().Changed("min-votes") {
-		finalMinVotes = topMinVotes
-	}
-
-	finalTimeout := cfg.Timeout
-	if cmd.Flags().Changed("timeout") {
-		finalTimeout = topTimeout
-	}
+	finalRegion, finalProviders, finalMinRating, finalMinVotes, finalTimeout, topGenre := topFlags.Resolve(cmd, cfg)
 
 	client, err := api.NewClient(cfg.APIKey, finalTimeout)
 	if err != nil {
@@ -73,52 +38,28 @@ func runTop(cmd *cobra.Command, args []string) {
 
 	desiredProviders := filters.ParseProviders(finalProviders)
 
-  var genreList []models.Genre
-	var genreMap map[string]int
-
-  genreResp, err := client.GetGenres("de-DE")
-  if err == nil {
-    genreList = genreResp.Genres
-    genreMap = filters.BuildGenreMap(genreList)
-  }
+	genreList, genreMap := LoadGenres(client)
 
 	fmt.Printf("Searching TMDb's Top Rated Movies...\n")
 	fmt.Printf("Criteria: Min Rating: %.1f | Min Votes: %d\n", finalMinRating, finalMinVotes)
 	fmt.Printf("Filtering for [%s] in region [%s]\n\n", finalProviders, strings.ToUpper(finalRegion))
 
+	processor := NewMovieProcessor(client, MovieFilterConfig{
+		MinRating:        finalMinRating,
+		MinVotes:         finalMinVotes,
+		Region:           finalRegion,
+		GenreFilter:      topGenre,
+		DesiredProviders: desiredProviders,
+		GenreList:        genreList,
+		GenreMap:         genreMap,
+	})
+
 	resultsFound := 0
-	for page := 1; page <= config.MaxPagesToSearch && resultsFound < config.MaxResultsToDisplay; page++ {
-		fmt.Printf("Fetching page %d...\n", page)
-
-		resp, err := client.GetTopRatedMovies(page, finalRegion)
-		if err != nil {
-			fmt.Printf("Warning: Failed to fetch page %d: %v\n", page, err)
-			continue
-		}
-
-		for _, movie := range resp.Results {
-			if resultsFound >= config.MaxResultsToDisplay {
-				break
-			}
-
-			if !filters.MeetsRatingCriteria(movie.VoteAverage, movie.VoteCount, finalMinRating, finalMinVotes) {
-				continue
-			}
-
-			if topGenre != "" && !filters.FilterByGenre(&movie, topGenre, genreMap) {
-				continue
-			}
-
-			providerData, err := client.GetWatchProviders(movie.ID, finalRegion)
-			if err != nil {
-				continue
-			}
-
-			availableProviders, isAvailable := filters.CheckAvailability(providerData, desiredProviders)
-			if !isAvailable {
-				continue
-			}
-
+	err = processor.Process(
+		func(page int) (*models.DiscoverResponse, error) {
+			return client.GetTopRatedMovies(page, finalRegion)
+		},
+		func(movie *models.Movie, providers []string, genres []string) error {
 			resultsFound++
 			externalIDs, _ := client.GetExternalIDs(movie.ID)
 			englishTitle, _ := client.GetEnglishTitle(movie.ID)
@@ -126,26 +67,26 @@ func runTop(cmd *cobra.Command, args []string) {
 				englishTitle = movie.OriginalTitle
 			}
 
-      genreNames := filters.GetGenreNames(movie.GenreIDs, genreList)
-
 			display.DisplayMovie(display.MovieDisplay{
-				Number: resultsFound,
-				Title: movie.GetTitle(),
+				Number:       resultsFound,
+				Title:        movie.GetTitle(),
 				EnglishTitle: englishTitle,
-				Year: movie.GetYear(),
-				Rating: movie.VoteAverage,
-				Votes: movie.VoteCount,
-				Providers: availableProviders,
-				TmdbID: movie.ID,
-				ImdbID: externalIDs.ImdbID,
-				Overview: movie.Overview,
-				Genres: genreNames,
+				Year:         movie.GetYear(),
+				Rating:       movie.VoteAverage,
+				Votes:        movie.VoteCount,
+				Providers:    providers,
+				TmdbID:       movie.ID,
+				ImdbID:       externalIDs.ImdbID,
+				Overview:     movie.Overview,
+				Genres:       genres,
 			})
-		}
+			return nil
+		},
+	)
 
-		if page >= resp.TotalPages {
-			break
-		}
+	if err != nil {
+		fmt.Printf("Error processing movies: %v\n", err)
+		return
 	}
 
 	display.DisplaySeparator()
