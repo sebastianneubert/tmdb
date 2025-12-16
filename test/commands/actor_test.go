@@ -90,11 +90,11 @@ func TestActorSelectionFromMultipleResults(t *testing.T) {
 	}
 
 	tests := []struct {
-		name              string
-		userIndex         int
-		expectedActor     string
-		expectedID        int
-		shouldBeValid     bool
+		name          string
+		userIndex     int
+		expectedActor string
+		expectedID    int
+		shouldBeValid bool
 	}{
 		{
 			name:          "Select first actor",
@@ -158,9 +158,9 @@ func TestActorSelectionWithSorting(t *testing.T) {
 		popularity float64
 		id         int
 	}{
-		{"Random Foxx", 0.5, 5392815},  // Low popularity, should be last
-		{"Jamie Foxx", 3.7, 134},        // High popularity, should be first
-		{"Redd Foxx", 0.8, 56949},       // Medium popularity, should be second
+		{"Random Foxx", 0.5, 5392815}, // Low popularity, should be last
+		{"Jamie Foxx", 3.7, 134},      // High popularity, should be first
+		{"Redd Foxx", 0.8, 56949},     // Medium popularity, should be second
 	}
 
 	// Sort by popularity (descending) - simulating what the code does
@@ -184,31 +184,31 @@ func TestActorSelectionWithSorting(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		index          int
-		expectedName   string
-		expectedID     int
+		name               string
+		index              int
+		expectedName       string
+		expectedID         int
 		expectedPopularity float64
 	}{
 		{
-			name:           "Index 1 should be Jamie Foxx with ID 134",
-			index:          0, // 0-based after conversion
-			expectedName:   "Jamie Foxx",
-			expectedID:     134,
+			name:               "Index 1 should be Jamie Foxx with ID 134",
+			index:              0, // 0-based after conversion
+			expectedName:       "Jamie Foxx",
+			expectedID:         134,
 			expectedPopularity: 3.7,
 		},
 		{
-			name:           "Index 2 should be Redd Foxx with ID 56949",
-			index:          1,
-			expectedName:   "Redd Foxx",
-			expectedID:     56949,
+			name:               "Index 2 should be Redd Foxx with ID 56949",
+			index:              1,
+			expectedName:       "Redd Foxx",
+			expectedID:         56949,
 			expectedPopularity: 0.8,
 		},
 		{
-			name:           "Index 3 should be Random Foxx with ID 5392815",
-			index:          2,
-			expectedName:   "Random Foxx",
-			expectedID:     5392815,
+			name:               "Index 3 should be Random Foxx with ID 5392815",
+			index:              2,
+			expectedName:       "Random Foxx",
+			expectedID:         5392815,
 			expectedPopularity: 0.5,
 		},
 	}
@@ -238,10 +238,10 @@ func TestActorSelectionWithSorting(t *testing.T) {
 
 func TestActorNameWithIndex(t *testing.T) {
 	tests := []struct {
-		name           string
-		input          string
-		expectedName   string
-		shouldContain  string
+		name          string
+		input         string
+		expectedName  string
+		shouldContain string
 	}{
 		{
 			name:          "Simple name with index",
@@ -303,10 +303,10 @@ func TestGenreFilteringInFilmography(t *testing.T) {
 	}
 
 	tests := []struct {
-		name            string
-		movie           Movie
-		genreFilter     string
-		shouldInclude   bool
+		name          string
+		movie         Movie
+		genreFilter   string
+		shouldInclude bool
 	}{
 		{
 			name:          "Action movie matches Action filter",

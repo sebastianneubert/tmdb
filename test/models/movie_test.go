@@ -205,6 +205,175 @@ func TestMovieCharacterField(t *testing.T) {
 	}
 }
 
+func TestMovieOriginalTitle(t *testing.T) {
+	tests := []struct {
+		name        string
+		movie       models.Movie
+		expected    string
+		description string
+	}{
+		{
+			name: "Different original title",
+			movie: models.Movie{
+				ID:            1,
+				Title:         "Spirited Away",
+				OriginalTitle: "千と千尋の神隠し",
+			},
+			expected:    "千と千尋の神隠し",
+			description: "Should store and retrieve original title",
+		},
+		{
+			name: "Same title and original",
+			movie: models.Movie{
+				ID:            1,
+				Title:         "Avatar",
+				OriginalTitle: "Avatar",
+			},
+			expected:    "Avatar",
+			description: "Should handle same title and original",
+		},
+		{
+			name: "Empty original title",
+			movie: models.Movie{
+				ID:            1,
+				Title:         "Some Movie",
+				OriginalTitle: "",
+			},
+			expected:    "",
+			description: "Should handle empty original title",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.movie.OriginalTitle != tt.expected {
+				t.Errorf("%s: expected '%s', got '%s'", tt.description, tt.expected, tt.movie.OriginalTitle)
+			}
+		})
+	}
+}
+
+func TestMovieOverview(t *testing.T) {
+	tests := []struct {
+		name        string
+		movie       models.Movie
+		description string
+	}{
+		{
+			name: "Valid overview",
+			movie: models.Movie{
+				ID:       1,
+				Title:    "Inception",
+				Overview: "A skilled thief who steals corporate secrets through dream-sharing technology",
+			},
+			description: "Should store valid overview",
+		},
+		{
+			name: "Empty overview",
+			movie: models.Movie{
+				ID:       1,
+				Title:    "Unknown Movie",
+				Overview: "",
+			},
+			description: "Should handle empty overview",
+		},
+		{
+			name: "Long overview",
+			movie: models.Movie{
+				ID:       1,
+				Title:    "Epic",
+				Overview: "This is a very long overview that contains lots of information about the movie. It goes on and on describing the plot, characters, themes, and other details in great detail.",
+			},
+			description: "Should handle long overview",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.movie.Overview == "" {
+				if tt.name != "Empty overview" {
+					t.Errorf("%s: overview is empty but should not be", tt.description)
+				}
+			}
+		})
+	}
+}
+
+func TestMovieFirstAirDate(t *testing.T) {
+	tests := []struct {
+		name        string
+		movie       models.Movie
+		expected    string
+		description string
+	}{
+		{
+			name: "Valid first air date",
+			movie: models.Movie{
+				ID:           1,
+				Title:        "Breaking Bad",
+				FirstAirDate: "2008-01-20",
+			},
+			expected:    "2008-01-20",
+			description: "Should store first air date for TV shows",
+		},
+		{
+			name: "Empty first air date",
+			movie: models.Movie{
+				ID:           1,
+				Title:        "Movie Title",
+				FirstAirDate: "",
+			},
+			expected:    "",
+			description: "Should handle empty first air date",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.movie.FirstAirDate != tt.expected {
+				t.Errorf("%s: expected '%s', got '%s'", tt.description, tt.expected, tt.movie.FirstAirDate)
+			}
+		})
+	}
+}
+
+func TestMovieNameField(t *testing.T) {
+	tests := []struct {
+		name        string
+		movie       models.Movie
+		expected    string
+		description string
+	}{
+		{
+			name: "With Name field",
+			movie: models.Movie{
+				ID:   1,
+				Name: "TV Show Name",
+			},
+			expected:    "TV Show Name",
+			description: "Should store Name field for TV content",
+		},
+		{
+			name: "Empty Name field",
+			movie: models.Movie{
+				ID:    1,
+				Title: "Movie Title",
+				Name:  "",
+			},
+			expected:    "",
+			description: "Should handle empty Name field",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.movie.Name != tt.expected {
+				t.Errorf("%s: expected '%s', got '%s'", tt.description, tt.expected, tt.movie.Name)
+			}
+		})
+	}
+}
+
 func TestMovieStructFields(t *testing.T) {
 	movie := models.Movie{
 		ID:            1,

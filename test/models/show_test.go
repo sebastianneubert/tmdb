@@ -139,6 +139,197 @@ func TestShowStructFields(t *testing.T) {
 	}
 }
 
+func TestShowOverview(t *testing.T) {
+	tests := []struct {
+		name        string
+		show        models.Show
+		description string
+	}{
+		{
+			name: "Valid overview",
+			show: models.Show{
+				ID:       1,
+				Name:     "The Crown",
+				Overview: "The Crown tells the story of the royal family from the 1950s onwards",
+			},
+			description: "Should store valid overview",
+		},
+		{
+			name: "Empty overview",
+			show: models.Show{
+				ID:       1,
+				Name:     "Unknown Show",
+				Overview: "",
+			},
+			description: "Should handle empty overview",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.show.Overview == "" && tt.name != "Empty overview" {
+				t.Errorf("%s: overview is empty but should not be", tt.description)
+			}
+		})
+	}
+}
+
+func TestShowOriginalLanguage(t *testing.T) {
+	tests := []struct {
+		name        string
+		show        models.Show
+		expected    string
+		description string
+	}{
+		{
+			name: "English language",
+			show: models.Show{
+				ID:               1,
+				Name:             "Game of Thrones",
+				OriginalLanguage: "en",
+			},
+			expected:    "en",
+			description: "Should store English language code",
+		},
+		{
+			name: "German language",
+			show: models.Show{
+				ID:               1,
+				Name:             "Dark",
+				OriginalLanguage: "de",
+			},
+			expected:    "de",
+			description: "Should store German language code",
+		},
+		{
+			name: "Spanish language",
+			show: models.Show{
+				ID:               1,
+				Name:             "Money Heist",
+				OriginalLanguage: "es",
+			},
+			expected:    "es",
+			description: "Should store Spanish language code",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.show.OriginalLanguage != tt.expected {
+				t.Errorf("%s: expected '%s', got '%s'", tt.description, tt.expected, tt.show.OriginalLanguage)
+			}
+		})
+	}
+}
+
+func TestShowExternalIDs(t *testing.T) {
+	ids := models.ShowExternalIDs{
+		ID:     1,
+		ImdbID: "tt0944947",
+		TvdbID: 121361,
+	}
+
+	if ids.ID != 1 {
+		t.Errorf("Expected ID 1, got %d", ids.ID)
+	}
+
+	if ids.ImdbID != "tt0944947" {
+		t.Errorf("Expected ImdbID 'tt0944947', got '%s'", ids.ImdbID)
+	}
+
+	if ids.TvdbID != 121361 {
+		t.Errorf("Expected TvdbID 121361, got %d", ids.TvdbID)
+	}
+}
+
+func TestShowVotingFields(t *testing.T) {
+	tests := []struct {
+		name        string
+		show        models.Show
+		description string
+	}{
+		{
+			name: "High rating and votes",
+			show: models.Show{
+				ID:          1,
+				Name:        "Breaking Bad",
+				VoteAverage: 9.5,
+				VoteCount:   500000,
+			},
+			description: "Should store high ratings and vote counts",
+		},
+		{
+			name: "Low rating and votes",
+			show: models.Show{
+				ID:          2,
+				Name:        "Unknown Show",
+				VoteAverage: 2.1,
+				VoteCount:   5,
+			},
+			description: "Should store low ratings and vote counts",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.show.VoteAverage == 0 {
+				t.Errorf("%s: VoteAverage is zero", tt.description)
+			}
+			if tt.show.VoteCount == 0 {
+				t.Errorf("%s: VoteCount is zero", tt.description)
+			}
+		})
+	}
+}
+
+func TestShowOriginalName(t *testing.T) {
+	tests := []struct {
+		name        string
+		show        models.Show
+		expected    string
+		description string
+	}{
+		{
+			name: "Same original name",
+			show: models.Show{
+				ID:           1,
+				Name:         "Sherlock",
+				OriginalName: "Sherlock",
+			},
+			expected:    "Sherlock",
+			description: "Should store original name when same as display name",
+		},
+		{
+			name: "Different original name",
+			show: models.Show{
+				ID:           1,
+				Name:         "Attack on Titan",
+				OriginalName: "進撃の巨人",
+			},
+			expected:    "進撃の巨人",
+			description: "Should store different original name",
+		},
+		{
+			name: "Empty original name",
+			show: models.Show{
+				ID:           1,
+				Name:         "Test Show",
+				OriginalName: "",
+			},
+			expected:    "",
+			description: "Should handle empty original name",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.show.OriginalName != tt.expected {
+				t.Errorf("%s: expected '%s', got '%s'", tt.description, tt.expected, tt.show.OriginalName)
+			}
+		})
+	}
+}
+
 func TestShowDiscoverResponse(t *testing.T) {
 	show1 := models.Show{
 		ID:           1,

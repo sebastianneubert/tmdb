@@ -144,7 +144,7 @@ func runActor(cmd *cobra.Command, args []string) {
 	// If actor index is provided, use it to select from sorted results
 	if actorIndex >= 0 {
 		if actorIndex >= len(actorResults.Results) {
-			fmt.Printf("Invalid actor index: %d. Found only %d actors matching '%s' (use 1-%d)\n", 
+			fmt.Printf("Invalid actor index: %d. Found only %d actors matching '%s' (use 1-%d)\n",
 				actorIndex+1, len(actorResults.Results), actorName, len(actorResults.Results))
 			displayActorMatches(actorResults.Results)
 			return
@@ -283,7 +283,7 @@ func displayActorFilmography(client *api.Client, actor models.Actor, finalRegion
 		if englishTitle == "" {
 			englishTitle = movie.OriginalTitle
 		}
-		
+
 		// Get region-specific title (e.g., DE -> de-DE)
 		languageCode := strings.ToLower(finalRegion) + "-" + strings.ToUpper(finalRegion)
 		regionalTitle, _ := client.GetRegionalTitle(movie.ID, languageCode)

@@ -89,49 +89,49 @@ func (c *Client) SearchMovie(query string, language string, region string) (*mod
 	params.Set("include_adult", "true")
 	params.Set("region", region)
 
-  // initialize the response with the first page
-  finalResponse := &models.DiscoverResponse{
-    Page:         0,
-    Results:      []models.Movie{},
-    TotalPages:   0,
-    TotalResults: 0,
-  }
+	// initialize the response with the first page
+	finalResponse := &models.DiscoverResponse{
+		Page:         0,
+		Results:      []models.Movie{},
+		TotalPages:   0,
+		TotalResults: 0,
+	}
 
-  req, err := c.createRequest("/search/movie", params)
-  if err != nil {
-    return nil, err
-  }
+	req, err := c.createRequest("/search/movie", params)
+	if err != nil {
+		return nil, err
+	}
 
-  var response models.DiscoverResponse
-  if err := c.doRequest(req, &response); err != nil {
-    return nil, err
-  }
+	var response models.DiscoverResponse
+	if err := c.doRequest(req, &response); err != nil {
+		return nil, err
+	}
 
-  finalResponse.Results = append(finalResponse.Results, response.Results...)
-  finalResponse.TotalPages = response.TotalPages
-  finalResponse.TotalResults = response.TotalResults
+	finalResponse.Results = append(finalResponse.Results, response.Results...)
+	finalResponse.TotalPages = response.TotalPages
+	finalResponse.TotalResults = response.TotalResults
 
-  for page := 2; page <= finalResponse.TotalPages; page++ {
-    if page > 20 {
-      break
-    }
+	for page := 2; page <= finalResponse.TotalPages; page++ {
+		if page > 20 {
+			break
+		}
 
-    params.Set("page", strconv.Itoa(page))
+		params.Set("page", strconv.Itoa(page))
 
-    req, err := c.createRequest("/search/movie", params)
-    if err != nil {
-      return nil, err
-    }
+		req, err := c.createRequest("/search/movie", params)
+		if err != nil {
+			return nil, err
+		}
 
-    var response models.DiscoverResponse
-    if err := c.doRequest(req, &response); err != nil {
-      return nil, err
-    }
+		var response models.DiscoverResponse
+		if err := c.doRequest(req, &response); err != nil {
+			return nil, err
+		}
 
-    finalResponse.Results = append(finalResponse.Results, response.Results...)
-  }
+		finalResponse.Results = append(finalResponse.Results, response.Results...)
+	}
 
-  return finalResponse, nil
+	return finalResponse, nil
 }
 
 func (c *Client) GetGenres(language string) (*models.GenreListResponse, error) {
