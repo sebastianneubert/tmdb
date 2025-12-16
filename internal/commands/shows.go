@@ -4,20 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/sebastianneubert/tmdb/internal/api"
 	"github.com/sebastianneubert/tmdb/internal/config"
 	"github.com/sebastianneubert/tmdb/internal/display"
 	"github.com/sebastianneubert/tmdb/internal/filters"
+	"github.com/spf13/cobra"
 )
 
-var (
-	showsProviders string
-	showsRegion    string
-	showsMinRating float64
-	showsMinVotes  int
-	showsTimeout   int
-)
+var showsFlags = MovieCommandFlags{}
 
 var showsCmd = &cobra.Command{
 	Use:   "shows",
@@ -27,40 +21,13 @@ var showsCmd = &cobra.Command{
 }
 
 func init() {
-	showsCmd.Flags().StringVarP(&showsProviders, "providers", "p", config.DefaultProviders, "Comma-separated providers")
-	showsCmd.Flags().StringVarP(&showsRegion, "region", "r", config.DefaultRegion, "Watch region")
-	showsCmd.Flags().Float64Var(&showsMinRating, "min-rating", config.DefaultMinRating, "Minimum rating")
-	showsCmd.Flags().IntVar(&showsMinVotes, "min-votes", config.DefaultMinVotes, "Minimum votes")
-	showsCmd.Flags().IntVarP(&showsTimeout, "timeout", "T", config.DefaultTimeout, "Timeout in seconds")
+	showsFlags.Register(showsCmd, false) // Shows command doesn't have genre filter yet
 }
 
 func runShows(cmd *cobra.Command, args []string) {
 	cfg := config.Get()
 
-	finalRegion := cfg.Region
-	if cmd.Flags().Changed("region") {
-		finalRegion = showsRegion
-	}
-
-	finalProviders := cfg.Providers
-	if cmd.Flags().Changed("providers") {
-		finalProviders = showsProviders
-	}
-
-	finalMinRating := cfg.MinRating
-	if cmd.Flags().Changed("min-rating") {
-		finalMinRating = showsMinRating
-	}
-
-	finalMinVotes := cfg.MinVotes
-	if cmd.Flags().Changed("min-votes") {
-		finalMinVotes = showsMinVotes
-	}
-
-	finalTimeout := cfg.Timeout
-	if cmd.Flags().Changed("timeout") {
-		finalTimeout = showsTimeout
-	}
+	finalRegion, finalProviders, finalMinRating, finalMinVotes, finalTimeout, _ := showsFlags.Resolve(cmd, cfg)
 
 	client, err := api.NewClient(cfg.APIKey, finalTimeout)
 	if err != nil {
