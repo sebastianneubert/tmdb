@@ -3,19 +3,25 @@ package display
 import (
 	"strings"
 
-	"github.com/sebastianneubert/tmdb/internal/api"
 	"github.com/sebastianneubert/tmdb/internal/models"
 )
 
 // DetailsFetcher handles fetching and assembling movie details for display
+// APIClient is the subset of api.Client methods used by DetailsFetcher
+type APIClient interface {
+	GetExternalIDs(movieID int) (models.ExternalIDs, error)
+	GetEnglishTitle(movieID int) (string, error)
+	GetRegionalTitle(movieID int, language string) (string, error)
+}
+
 type DetailsFetcher struct {
-	client    *api.Client
+	client    APIClient
 	region    string
 	genreList []models.Genre
 }
 
 // NewDetailsFetcher creates a new fetcher for movie details
-func NewDetailsFetcher(client *api.Client, region string, genreList []models.Genre) *DetailsFetcher {
+func NewDetailsFetcher(client APIClient, region string, genreList []models.Genre) *DetailsFetcher {
 	return &DetailsFetcher{
 		client:    client,
 		region:    region,
