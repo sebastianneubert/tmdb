@@ -1,5 +1,7 @@
 # tmdb - The movie db CLI tool
 
+[![Tests](https://github.com/sebastianneubert/tmdb/actions/workflows/tests.yml/badge.svg)](https://github.com/sebastianneubert/tmdb/actions/workflows/tests.yml)
+
 CLI tool to discover hidden gems in your streaming libraries. Fetches data from TMDB and your streaming services to 
 help you find movies and shows you might have missed. 
 
@@ -24,14 +26,15 @@ go build -o tmdb cmd/main.go # or make build
 2. Copy `.env.example` to `.env`
 3. Add your TMDB API key and adjust your preferences:
 
-    ```
+    ```dotenv
     # .env file
-    TMDB_API_KEY=your_api_key_here
-    PROVIDERS=Netflix,DisneyPlus,Wow,RtlPlus
+    # use the tmdb providers command to get a list of available providers for your region
+    PROVIDERS="Netflix,Disney Plus,Wow,Rtl+,AmazonPrime"
     REGION=DE
     MIN_RATING=7.5
     MIN_VOTES=1000
     API_TIMEOUT_SECONDS=20
+    # DEBUG=true
     ```
 
 ## Usage
@@ -40,8 +43,14 @@ go build -o tmdb cmd/main.go # or make build
 # Show top rated movies filtered by your .env settings or cli options
 ./tmdb top --min-rating 6.0
 
+# Show top rated movies filtered by release year
+./tmdb top --year 2020 --genre comedy
+
 # list available genres in your language/region
 ./tmdb genres
+
+# list available streaming providers in your language/region
+./tmdb providers
 
 # show popular movies
 ./tmdb popular --genre action
@@ -88,4 +97,4 @@ The index corresponds to the order shown in the search results (1-based indexing
 - [ ] caching of API responses to reduce load times and API calls
 - [ ] "fomo" command. List movies leaving streaming services soon.
 - [ ] generate .env file with setup command (interactive shell)
-- [ ] list possible streaming services
+- [x] list possible streaming services
