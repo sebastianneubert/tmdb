@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/sebastianneubert/tmdb/internal/api"
 	"github.com/sebastianneubert/tmdb/internal/config"
@@ -12,7 +13,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var topFlags = MovieCommandFlags{}
+var (
+	topFlags = MovieCommandFlags{}
+	topYear  int
+)
 
 var topCmd = &cobra.Command{
 	Use:   "top",
@@ -23,10 +27,16 @@ var topCmd = &cobra.Command{
 
 func init() {
 	topFlags.Register(topCmd, true)
+	topCmd.Flags().IntVarP(&topYear, "year", "y", 0, "Only movies released in this year (e.g. 2024)")
 }
 
 func runTop(cmd *cobra.Command, args []string) {
 	cfg := config.Get()
+
+	if topYear != 0 && (topYear < 1888 || topYear > time.Now().Year()+1) {
+		fmt.Printf("Error: invalid year %d\n", topYear)
+		return
+	}
 
 	finalRegion, finalProviders, finalMinRating, finalMinVotes, finalTimeout, topGenre := topFlags.Resolve(cmd, cfg)
 
@@ -39,7 +49,11 @@ func runTop(cmd *cobra.Command, args []string) {
 	desiredProviders := filters.ParseProviders(finalProviders)
 	genreList, genreMap := LoadGenres(client)
 
-	display.PrintSearchStartMessage("Top Rated Movies", finalMinRating, finalMinVotes, finalProviders, finalRegion)
+	title := "Top Rated Movies"
+	if topYear > 0 {
+		title = fmt.Sprintf("Top Rated Movies of %d", topYear)
+	}
+	display.PrintSearchStartMessage(title, finalMinRating, finalMinVotes, finalProviders, finalRegion)
 
 	processor := processor.NewMovieProcessor(client, processor.FilterConfig{
 		MinRating:        finalMinRating,
@@ -56,6 +70,9 @@ func runTop(cmd *cobra.Command, args []string) {
 
 	err = processor.Process(
 		func(page int) (*models.DiscoverResponse, error) {
+			if topYear > 0 {
+				return client.GetTopRatedMoviesByYear(page, finalRegion, topYear, finalMinVotes)
+			}
 			return client.GetTopRatedMovies(page, finalRegion)
 		},
 		func(movie *models.Movie, providers []string, genres []string) error {

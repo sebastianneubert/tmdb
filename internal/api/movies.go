@@ -26,6 +26,29 @@ func (c *Client) GetTopRatedMovies(page int, language string) (*models.DiscoverR
 	return &response, nil
 }
 
+// GetTopRatedMoviesByYear returns the best-rated movies of a release year.
+// /movie/top_rated has no year filter, so this uses /discover/movie instead.
+func (c *Client) GetTopRatedMoviesByYear(page int, language string, year, minVotes int) (*models.DiscoverResponse, error) {
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(page))
+	params.Set("language", language)
+	params.Set("sort_by", "vote_average.desc")
+	params.Set("vote_count.gte", strconv.Itoa(minVotes))
+	params.Set("primary_release_year", strconv.Itoa(year))
+
+	req, err := c.createRequest("/discover/movie", params)
+	if err != nil {
+		return nil, err
+	}
+
+	var response models.DiscoverResponse
+	if err := c.doRequest(req, &response); err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}
+
 func (c *Client) GetPopularMovies(page int, language string) (*models.DiscoverResponse, error) {
 	params := url.Values{}
 	params.Set("page", strconv.Itoa(page))
