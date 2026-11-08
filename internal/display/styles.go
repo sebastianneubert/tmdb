@@ -18,6 +18,11 @@ var (
 			Foreground(lipgloss.Color("#FCE043")).
 			Bold(true)
 
+	AgeRatingStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FF8C42")).
+			Bold(true).
+			Inline(true)
+
 	SeparatorStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#555555"))
 

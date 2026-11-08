@@ -18,6 +18,8 @@ type FilterConfig struct {
 	DesiredProviders map[string]bool
 	GenreList        []models.Genre
 	GenreMap         map[string]int
+	// AgeFilter hides movies with a too high age recommendation. nil = no age filter.
+	AgeFilter *AgeFilter
 }
 
 // MovieProcessor handles fetching, filtering, and processing movies
@@ -89,6 +91,12 @@ func (mp *MovieProcessor) Process(apiCall FetchFunc, processFunc ProcessMovieFun
 				}
 			}
 
+			// Apply age filter last: it costs one extra API call per movie,
+			// so only movies that passed all other filters are looked up.
+			if !mp.config.AgeFilter.Allows(movie.ID) {
+				continue
+			}
+
 			// Movie passed all filters
 			resultsFound++
 			genreNames := filters.GetGenreNames(movie.GenreIDs, mp.config.GenreList)
@@ -102,6 +110,10 @@ func (mp *MovieProcessor) Process(apiCall FetchFunc, processFunc ProcessMovieFun
 		if page >= resp.TotalPages {
 			break
 		}
+	}
+
+	if summary := mp.config.AgeFilter.Summary(); summary != "" {
+		fmt.Println(summary)
 	}
 
 	return nil

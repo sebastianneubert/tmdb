@@ -13,6 +13,7 @@ const (
 	DefaultTimeout      = 20
 	DefaultMinRating    = 7.5
 	DefaultMinVotes     = 1000
+	DefaultMaxAge       = 0 // 0 = age filter off
 	DefaultDebug        = false
 	MaxPagesToSearch    = 5
 	MaxResultsToDisplay = 40
@@ -26,6 +27,11 @@ type Config struct {
 	MinVotes  int     `mapstructure:"MIN_VOTES"`
 	Timeout   int     `mapstructure:"API_TIMEOUT_SECONDS"`
 	DEBUG     bool    `mapstructure:"DEBUG"`
+
+	// MaxAge hides movies with an age recommendation above this age (0 = off).
+	MaxAge int `mapstructure:"MAX_AGE"`
+	// IncludeUnrated also shows movies without an age recommendation when MaxAge is set.
+	IncludeUnrated bool `mapstructure:"INCLUDE_UNRATED"`
 }
 
 var AppConfig Config
@@ -41,6 +47,8 @@ func Init() {
 	viper.SetDefault("MIN_RATING", DefaultMinRating)
 	viper.SetDefault("MIN_VOTES", DefaultMinVotes)
 	viper.SetDefault("API_TIMEOUT_SECONDS", DefaultTimeout)
+	viper.SetDefault("MAX_AGE", DefaultMaxAge)
+	viper.SetDefault("INCLUDE_UNRATED", false)
 	viper.SetDefault("DEBUG", DefaultDebug)
 	viper.SetDefault("TMDB_API_KEY", "")
 

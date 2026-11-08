@@ -23,12 +23,14 @@ var popularCmd = &cobra.Command{
 
 func init() {
 	popularFlags.Register(popularCmd, true)
+	popularFlags.RegisterAge(popularCmd)
 }
 
 func runPopular(cmd *cobra.Command, args []string) {
 	cfg := config.Get()
 
 	finalRegion, finalProviders, finalMinRating, finalMinVotes, finalTimeout, popularGenre := popularFlags.Resolve(cmd, cfg)
+	maxAge, includeUnrated := popularFlags.ResolveAge(cmd, cfg)
 
 	client, err := api.NewClient(cfg.APIKey, finalTimeout)
 	if err != nil {
@@ -40,6 +42,9 @@ func runPopular(cmd *cobra.Command, args []string) {
 	genreList, genreMap := LoadGenres(client)
 
 	display.PrintSearchStartMessage("Popular Movies", finalMinRating, finalMinVotes, finalProviders, finalRegion)
+	printAgeFilterNotice(maxAge, includeUnrated, finalRegion)
+
+	ageFilter := processor.NewAgeFilter(client, finalRegion, maxAge, includeUnrated)
 
 	processor := processor.NewMovieProcessor(client, processor.FilterConfig{
 		MinRating:        finalMinRating,
@@ -49,6 +54,7 @@ func runPopular(cmd *cobra.Command, args []string) {
 		DesiredProviders: desiredProviders,
 		GenreList:        genreList,
 		GenreMap:         genreMap,
+		AgeFilter:        ageFilter,
 	})
 
 	fetcher := display.NewDetailsFetcher(client, finalRegion, genreList)
@@ -61,6 +67,7 @@ func runPopular(cmd *cobra.Command, args []string) {
 		func(movie *models.Movie, providers []string, genres []string) error {
 			resultsFound++
 			movieDisplay := fetcher.BuildMovieDisplay(resultsFound, movie, providers, genres)
+			movieDisplay.AgeRating = ageFilter.AgeLabel(movie.ID)
 			display.DisplayMovie(movieDisplay)
 			return nil
 		},

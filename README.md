@@ -34,6 +34,8 @@ go build -o tmdb cmd/main.go # or make build
     MIN_RATING=7.5
     MIN_VOTES=1000
     API_TIMEOUT_SECONDS=20
+    # hide movies with an age rating above this age, 0 = off
+    # MAX_AGE=12
     # DEBUG=true
     ```
 
@@ -73,6 +75,24 @@ go build -o tmdb cmd/main.go # or make build
 # Show top rated shows
 ./tmdb shows --min-rating 8.0
 ```
+
+## Age Rating Filter
+
+`top`, `popular`, `search` and `actor` can hide movies with a too high age recommendation:
+
+```bash
+# only movies rated FSK 12 or lower (ratings of your --region, default DE)
+./tmdb top --max-age 12
+
+# same for every command, set MAX_AGE=12 in your .env to make it the default
+./tmdb popular --max-age 6 --genre animation
+```
+
+- The age rating is taken from TMDb's release data of the watch region (`--region`), e.g. FSK for `DE`, MPA/BBFC for `US`/`GB`. If a movie has several releases with different ratings, the strictest one counts.
+- While the filter is active, every listed movie shows its age rating (e.g. `Age rating: 12+`) if one is known.
+- Movies without an age rating in that region are hidden as well. Use `--include-unrated` (or `INCLUDE_UNRATED=true`) to show them anyway.
+- Non-numeric ratings are mapped to ages: `G`/`U` = 0, `PG` = 10, `PG-13` = 13, `R` = 17, `NC-17` = 18.
+- `--max-age 0` (the default) switches the filter off. The filter needs one extra API request per movie that passed all other filters.
 
 ## Actor Command - Multiple Results
 

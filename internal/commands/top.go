@@ -27,6 +27,7 @@ var topCmd = &cobra.Command{
 
 func init() {
 	topFlags.Register(topCmd, true)
+	topFlags.RegisterAge(topCmd)
 	topCmd.Flags().IntVarP(&topYear, "year", "y", 0, "Only movies released in this year (e.g. 2024)")
 }
 
@@ -39,6 +40,7 @@ func runTop(cmd *cobra.Command, args []string) {
 	}
 
 	finalRegion, finalProviders, finalMinRating, finalMinVotes, finalTimeout, topGenre := topFlags.Resolve(cmd, cfg)
+	maxAge, includeUnrated := topFlags.ResolveAge(cmd, cfg)
 
 	client, err := api.NewClient(cfg.APIKey, finalTimeout)
 	if err != nil {
@@ -54,6 +56,9 @@ func runTop(cmd *cobra.Command, args []string) {
 		title = fmt.Sprintf("Top Rated Movies of %d", topYear)
 	}
 	display.PrintSearchStartMessage(title, finalMinRating, finalMinVotes, finalProviders, finalRegion)
+	printAgeFilterNotice(maxAge, includeUnrated, finalRegion)
+
+	ageFilter := processor.NewAgeFilter(client, finalRegion, maxAge, includeUnrated)
 
 	processor := processor.NewMovieProcessor(client, processor.FilterConfig{
 		MinRating:        finalMinRating,
@@ -63,6 +68,7 @@ func runTop(cmd *cobra.Command, args []string) {
 		DesiredProviders: desiredProviders,
 		GenreList:        genreList,
 		GenreMap:         genreMap,
+		AgeFilter:        ageFilter,
 	})
 
 	fetcher := display.NewDetailsFetcher(client, finalRegion, genreList)
@@ -78,6 +84,7 @@ func runTop(cmd *cobra.Command, args []string) {
 		func(movie *models.Movie, providers []string, genres []string) error {
 			resultsFound++
 			movieDisplay := fetcher.BuildMovieDisplay(resultsFound, movie, providers, genres)
+			movieDisplay.AgeRating = ageFilter.AgeLabel(movie.ID)
 			display.DisplayMovie(movieDisplay)
 			return nil
 		},

@@ -18,6 +18,8 @@ type MovieDisplay struct {
 	Overview     string
 	Character    string
 	Genres       []string
+	// AgeRating is the age recommendation, e.g. "12+". Empty = unknown / not shown.
+	AgeRating string
 }
 
 func DisplayMovie(m MovieDisplay) {
@@ -30,6 +32,10 @@ func DisplayMovie(m MovieDisplay) {
 
 	fmt.Printf("%d. %s%s %s\n", m.Number, TitleStyle.Render(m.Title), englishTitleDisplay, m.Year)
 	fmt.Printf("   Rating: %s/10 (Votes: %d)\n", RatingStyle.Render(fmt.Sprintf("%.1f", m.Rating)), m.Votes)
+
+	if m.AgeRating != "" {
+		fmt.Printf("   Age rating: %s\n", AgeRatingStyle.Render(m.AgeRating))
+	}
 
 	if len(m.Genres) > 0 {
 		genreStr := strings.Join(m.Genres, ", ")

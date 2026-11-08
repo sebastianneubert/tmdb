@@ -43,3 +43,50 @@ func TestMovieCommandFlagsRegisterAndResolve(t *testing.T) {
 		t.Errorf("Expected non-zero timeout")
 	}
 }
+
+func TestMovieCommandFlagsAge(t *testing.T) {
+	t.Run("defaults come from config", func(t *testing.T) {
+		cmd := &cobra.Command{}
+		flags := commands.MovieCommandFlags{}
+		flags.Register(cmd, true)
+		flags.RegisterAge(cmd)
+
+		maxAge, includeUnrated := flags.ResolveAge(cmd, config.Config{MaxAge: 16, IncludeUnrated: true})
+		if maxAge != 16 {
+			t.Errorf("Expected maxAge 16 from config, got %d", maxAge)
+		}
+		if !includeUnrated {
+			t.Errorf("Expected includeUnrated true from config")
+		}
+	})
+
+	t.Run("filter is off by default", func(t *testing.T) {
+		cmd := &cobra.Command{}
+		flags := commands.MovieCommandFlags{}
+		flags.Register(cmd, true)
+		flags.RegisterAge(cmd)
+
+		maxAge, includeUnrated := flags.ResolveAge(cmd, config.Config{})
+		if maxAge != 0 || includeUnrated {
+			t.Errorf("Expected age filter off, got maxAge=%d includeUnrated=%v", maxAge, includeUnrated)
+		}
+	})
+
+	t.Run("flags override config", func(t *testing.T) {
+		cmd := &cobra.Command{}
+		flags := commands.MovieCommandFlags{}
+		flags.Register(cmd, true)
+		flags.RegisterAge(cmd)
+
+		cmd.Flags().Set("max-age", "12")
+		cmd.Flags().Set("include-unrated", "false")
+
+		maxAge, includeUnrated := flags.ResolveAge(cmd, config.Config{MaxAge: 16, IncludeUnrated: true})
+		if maxAge != 12 {
+			t.Errorf("Expected maxAge 12 from flag, got %d", maxAge)
+		}
+		if includeUnrated {
+			t.Errorf("Expected includeUnrated false from flag")
+		}
+	})
+}

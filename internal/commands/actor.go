@@ -11,17 +11,20 @@ import (
 	"github.com/sebastianneubert/tmdb/internal/display"
 	"github.com/sebastianneubert/tmdb/internal/filters"
 	"github.com/sebastianneubert/tmdb/internal/models"
+	"github.com/sebastianneubert/tmdb/internal/processor"
 	"github.com/spf13/cobra"
 )
 
 var (
-	actorProviders string
-	actorRegion    string
-	actorMinRating float64
-	actorMinVotes  int
-	actorTimeout   int
-	actorGenre     string
-	actorList      bool
+	actorProviders      string
+	actorRegion         string
+	actorMinRating      float64
+	actorMinVotes       int
+	actorTimeout        int
+	actorGenre          string
+	actorList           bool
+	actorMaxAge         int
+	actorIncludeUnrated bool
 )
 
 var actorCmd = &cobra.Command{
@@ -51,6 +54,7 @@ func init() {
 	actorCmd.Flags().IntVarP(&actorTimeout, "timeout", "T", config.DefaultTimeout, "Timeout in seconds")
 	actorCmd.Flags().StringVar(&actorGenre, "genre", "", "Filter by genre (name or ID)")
 	actorCmd.Flags().BoolVar(&actorList, "list", false, "List actors instead of fetching filmography")
+	registerAgeFlags(actorCmd, &actorMaxAge, &actorIncludeUnrated)
 }
 
 func runActor(cmd *cobra.Command, args []string) {
@@ -99,6 +103,8 @@ func runActor(cmd *cobra.Command, args []string) {
 		finalTimeout = actorTimeout
 	}
 
+	finalMaxAge, finalIncludeUnrated := resolveAgeFlags(cmd, cfg, actorMaxAge, actorIncludeUnrated)
+
 	client, err := api.NewClient(cfg.APIKey, finalTimeout)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
@@ -106,6 +112,7 @@ func runActor(cmd *cobra.Command, args []string) {
 	}
 
 	desiredProviders := filters.ParseProviders(finalProviders)
+	ageFilter := processor.NewAgeFilter(client, finalRegion, finalMaxAge, finalIncludeUnrated)
 
 	// Fetch genres for filtering
 	var genreList []models.Genre
@@ -150,7 +157,7 @@ func runActor(cmd *cobra.Command, args []string) {
 			return
 		}
 		actor := actorResults.Results[actorIndex]
-		displayActorFilmography(client, actor, finalRegion, finalProviders, finalMinRating, finalMinVotes, desiredProviders, actorGenre, genreList, genreMap)
+		displayActorFilmography(client, actor, finalRegion, finalProviders, finalMinRating, finalMinVotes, desiredProviders, actorGenre, genreList, genreMap, ageFilter)
 		return
 	}
 
@@ -170,7 +177,7 @@ func runActor(cmd *cobra.Command, args []string) {
 
 	// Proceed with single match
 	actor := actorResults.Results[0]
-	displayActorFilmography(client, actor, finalRegion, finalProviders, finalMinRating, finalMinVotes, desiredProviders, actorGenre, genreList, genreMap)
+	displayActorFilmography(client, actor, finalRegion, finalProviders, finalMinRating, finalMinVotes, desiredProviders, actorGenre, genreList, genreMap, ageFilter)
 }
 
 func displayActorMatches(actors []models.Actor) {
@@ -234,7 +241,7 @@ func displayPopularActors(client *api.Client, language string) {
 	fmt.Printf("Showing top %d popular actors\n", displayCount)
 }
 
-func displayActorFilmography(client *api.Client, actor models.Actor, finalRegion, finalProviders string, finalMinRating float64, finalMinVotes int, desiredProviders map[string]bool, genreFilter string, genreList []models.Genre, genreMap map[string]int) {
+func displayActorFilmography(client *api.Client, actor models.Actor, finalRegion, finalProviders string, finalMinRating float64, finalMinVotes int, desiredProviders map[string]bool, genreFilter string, genreList []models.Genre, genreMap map[string]int, ageFilter *processor.AgeFilter) {
 	fmt.Printf("Found: %s (TMDb ID: %d)\n", display.TitleStyle.Render(actor.Name), actor.ID)
 	fmt.Printf("Fetching filmography...\n\n")
 
@@ -251,6 +258,9 @@ func displayActorFilmography(client *api.Client, actor models.Actor, finalRegion
 
 	fmt.Printf("Filtering with Min Rating: %.1f | Min Votes: %d\n", finalMinRating, finalMinVotes)
 	fmt.Printf("Checking [%s] in region [%s]\n\n", finalProviders, strings.ToUpper(finalRegion))
+	if ageFilter != nil {
+		printAgeFilterNotice(ageFilter.MaxAge, ageFilter.IncludeUnrated, finalRegion)
+	}
 
 	resultsFound := 0
 	moviesChecked := 0
@@ -274,6 +284,11 @@ func displayActorFilmography(client *api.Client, actor models.Actor, finalRegion
 
 		// Apply genre filter
 		if genreFilter != "" && !filters.FilterByGenre(&movie, genreFilter, genreMap) {
+			continue
+		}
+
+		// Age filter last: it costs one extra API call per movie
+		if !ageFilter.Allows(movie.ID) {
 			continue
 		}
 
@@ -306,6 +321,7 @@ func displayActorFilmography(client *api.Client, actor models.Actor, finalRegion
 			Overview:     movie.Overview,
 			Character:    movie.Character,
 			Genres:       genreNames,
+			AgeRating:    ageFilter.AgeLabel(movie.ID),
 		})
 
 		if resultsFound >= config.MaxResultsToDisplay {
@@ -314,6 +330,9 @@ func displayActorFilmography(client *api.Client, actor models.Actor, finalRegion
 	}
 
 	display.DisplaySeparator()
+	if summary := ageFilter.Summary(); summary != "" {
+		fmt.Println(summary)
+	}
 	if resultsFound == 0 {
 		fmt.Printf("No movies found for %s.\n", actor.Name)
 		fmt.Printf("(Checked %d movies meeting criteria)\n", moviesChecked)

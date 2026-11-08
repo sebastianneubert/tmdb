@@ -8,6 +8,7 @@ import (
 	"github.com/sebastianneubert/tmdb/internal/config"
 	"github.com/sebastianneubert/tmdb/internal/display"
 	"github.com/sebastianneubert/tmdb/internal/filters"
+	"github.com/sebastianneubert/tmdb/internal/processor"
 	"github.com/spf13/cobra"
 )
 
@@ -32,6 +33,7 @@ Examples:
 
 func init() {
 	searchFlags.Register(searchCmd, true)
+	searchFlags.RegisterAge(searchCmd)
 	searchCmd.Flags().IntVar(&searchMaxResults, "max", 20, "Maximum results to display")
 }
 
@@ -40,6 +42,7 @@ func runSearch(cmd *cobra.Command, args []string) {
 	query := strings.Join(args, " ")
 
 	finalRegion, finalProviders, finalMinRating, finalMinVotes, finalTimeout, searchGenre := searchFlags.Resolve(cmd, cfg)
+	maxAge, includeUnrated := searchFlags.ResolveAge(cmd, cfg)
 
 	client, err := api.NewClient(cfg.APIKey, finalTimeout)
 	if err != nil {
@@ -49,10 +52,12 @@ func runSearch(cmd *cobra.Command, args []string) {
 
 	desiredProviders := filters.ParseProviders(finalProviders)
 	genreList, genreMap := LoadGenres(client)
+	ageFilter := processor.NewAgeFilter(client, finalRegion, maxAge, includeUnrated)
 
 	fmt.Printf("🔍 Searching for: \"%s\"\n", query)
 	fmt.Printf("Criteria: Min Rating: %.1f | Min Votes: %d\n", finalMinRating, finalMinVotes)
 	fmt.Printf("Filtering for [%s] in region [%s]\n\n", finalProviders, strings.ToUpper(finalRegion))
+	printAgeFilterNotice(maxAge, includeUnrated, finalRegion)
 
 	searchResp, err := client.SearchMovie(query, "de-DE", finalRegion)
 	if err != nil {
@@ -98,12 +103,22 @@ func runSearch(cmd *cobra.Command, args []string) {
 			continue
 		}
 
+		// Age filter last: it costs one extra API call per movie
+		if !ageFilter.Allows(m.ID) {
+			continue
+		}
+
 		// Movie matches all criteria
 		resultsFound++
 
 		genreNames := filters.GetGenreNames(m.GenreIDs, genreList)
 		movieDisplay := fetcher.BuildMovieDisplaySimple(resultsFound, &m, availableProviders, genreNames)
+		movieDisplay.AgeRating = ageFilter.AgeLabel(m.ID)
 		display.DisplayMovie(movieDisplay)
+	}
+
+	if summary := ageFilter.Summary(); summary != "" {
+		fmt.Println(summary)
 	}
 
 	if resultsFound == 0 {

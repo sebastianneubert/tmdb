@@ -1,18 +1,70 @@
 package commands
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/sebastianneubert/tmdb/internal/config"
 	"github.com/spf13/cobra"
 )
 
 // MovieCommandFlags holds all the common flag values for movie-related commands
 type MovieCommandFlags struct {
-	Providers string
-	Region    string
-	MinRating float64
-	MinVotes  int
-	Timeout   int
-	Genre     string
+	Providers      string
+	Region         string
+	MinRating      float64
+	MinVotes       int
+	Timeout        int
+	Genre          string
+	MaxAge         int
+	IncludeUnrated bool
+}
+
+// registerAgeFlags registers --max-age and --include-unrated on a command.
+func registerAgeFlags(cmd *cobra.Command, maxAge *int, includeUnrated *bool) {
+	cmd.Flags().IntVar(maxAge, "max-age", config.DefaultMaxAge,
+		"Hide movies with an age rating above this age in the watch region, e.g. 12 (0 = off)")
+	cmd.Flags().BoolVar(includeUnrated, "include-unrated", false,
+		"With --max-age: also show movies that have no age rating in the watch region")
+}
+
+// resolveAgeFlags combines config values with command-line overrides.
+func resolveAgeFlags(cmd *cobra.Command, cfg config.Config, maxAgeFlag int, includeUnratedFlag bool) (maxAge int, includeUnrated bool) {
+	maxAge = cfg.MaxAge
+	if cmd.Flags().Changed("max-age") {
+		maxAge = maxAgeFlag
+	}
+
+	includeUnrated = cfg.IncludeUnrated
+	if cmd.Flags().Changed("include-unrated") {
+		includeUnrated = includeUnratedFlag
+	}
+
+	return
+}
+
+// printAgeFilterNotice tells the user that the age filter is active.
+func printAgeFilterNotice(maxAge int, includeUnrated bool, region string) {
+	if maxAge <= 0 {
+		return
+	}
+
+	notice := fmt.Sprintf("Age filter: max. %d (age ratings of region %s)", maxAge, strings.ToUpper(region))
+	if includeUnrated {
+		notice += ", unrated movies included"
+	}
+	fmt.Printf("%s\n\n", notice)
+}
+
+// RegisterAge registers the age filter flags (--max-age, --include-unrated).
+// Call it for movie commands that apply the age filter.
+func (f *MovieCommandFlags) RegisterAge(cmd *cobra.Command) {
+	registerAgeFlags(cmd, &f.MaxAge, &f.IncludeUnrated)
+}
+
+// ResolveAge returns the final age filter settings (config defaults plus CLI overrides).
+func (f *MovieCommandFlags) ResolveAge(cmd *cobra.Command, cfg config.Config) (maxAge int, includeUnrated bool) {
+	return resolveAgeFlags(cmd, cfg, f.MaxAge, f.IncludeUnrated)
 }
 
 // Register registers all flags with the given command

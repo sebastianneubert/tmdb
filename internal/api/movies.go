@@ -86,6 +86,22 @@ func (c *Client) GetWatchProviders(movieID int, region string) (models.RegionPro
 	return models.RegionProviders{}, fmt.Errorf("no provider data for region %s", region)
 }
 
+// GetReleaseDates returns the releases of a movie per country including their age certifications.
+func (c *Client) GetReleaseDates(movieID int) (*models.ReleaseDatesResponse, error) {
+	apiPath := fmt.Sprintf("/movie/%d/release_dates", movieID)
+	req, err := c.createRequest(apiPath, url.Values{})
+	if err != nil {
+		return nil, err
+	}
+
+	var response models.ReleaseDatesResponse
+	if err := c.doRequest(req, &response); err != nil {
+		return nil, err
+	}
+
+	return &response, nil
+}
+
 func (c *Client) GetExternalIDs(movieID int) (models.ExternalIDs, error) {
 	apiPath := fmt.Sprintf("/movie/%d/external_ids", movieID)
 	req, err := c.createRequest(apiPath, url.Values{})

@@ -140,3 +140,29 @@ func TestPrintSearchCompleteMessageManyResults(t *testing.T) {
 		t.Error("Output should contain checked count")
 	}
 }
+
+func TestDisplayMovieShowsAgeRatingOnlyWhenAvailable(t *testing.T) {
+	movie := display.MovieDisplay{
+		Number:    1,
+		Title:     "Test Movie",
+		Rating:    8.0,
+		Votes:     1000,
+		Providers: []string{"Netflix"},
+		TmdbID:    1,
+	}
+
+	t.Run("without age rating no age line is printed", func(t *testing.T) {
+		output := captureOutput(func() { display.DisplayMovie(movie) })
+		if strings.Contains(output, "Age rating") {
+			t.Errorf("output should not contain an age line, got:\n%s", output)
+		}
+	})
+
+	t.Run("with age rating the age is printed", func(t *testing.T) {
+		movie.AgeRating = "12+"
+		output := captureOutput(func() { display.DisplayMovie(movie) })
+		if !strings.Contains(output, "Age rating:") || !strings.Contains(output, "12+") {
+			t.Errorf("output should contain the age rating, got:\n%s", output)
+		}
+	})
+}
