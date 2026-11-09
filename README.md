@@ -23,11 +23,13 @@ go build -o tmdb cmd/main.go # or make build
 ## Setup
 
 1. Get an API key from TMDB: https://www.themoviedb.org/settings/api
-2. Copy `.env.example` to `.env`
-3. Add your TMDB API key and adjust your preferences:
+2. Run `tmdb init`. It asks for your API key and preferences, based on `.env.example`, and stores them in
+   `~/.config/tmdb/.env` (or `$XDG_CONFIG_HOME/tmdb/.env`). From then on `tmdb` works from every folder.
+   If there is no config yet, the first `tmdb` command in a terminal offers to do this for you.
+3. Adjust your preferences any time by editing that file:
 
     ```dotenv
-    # .env file
+    # tmdb version 0.7.0
     # use the tmdb providers command to get a list of available providers for your region
     PROVIDERS="Netflix,Disney Plus,Wow,Rtl+,AmazonPrime"
     REGION=DE
@@ -38,6 +40,19 @@ go build -o tmdb cmd/main.go # or make build
     # MAX_AGE=12
     # DEBUG=true
     ```
+
+### Where tmdb looks for its config
+
+1. `.env` in the current folder
+2. `.env` in the config folder (`~/.config/tmdb/.env` or `$XDG_CONFIG_HOME/tmdb/.env`)
+3. environment variables and defaults (environment variables always override values from a file)
+
+A `.env` file is only used if it starts with the header `# tmdb version x.y.z`. This makes sure that a `.env` of
+another project is never read by accident. `tmdb init` writes the header for you. The header is also checked
+for compatibility: files from a newer tmdb or from a too old tmdb are not used, and tmdb tells you to run `tmdb init`.
+
+If you already have a `.env` from an older version, add `# tmdb version 0.7.0` as its first line, or run `tmdb init`.
+Set `DEBUG=true` to see which file is used. `tmdb --version` shows the installed version.
 
 ## Usage
 
